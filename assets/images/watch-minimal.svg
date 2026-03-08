@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="420" viewBox="0 0 600 420" role="img" aria-labelledby="title desc">
+  <title id="title">Minimal watch placeholder</title>
+  <desc id="desc">Stylized minimal watch illustration</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fefefe"/>
+      <stop offset="100%" stop-color="#f0ece5"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#d8d3ca"/>
+      <stop offset="45%" stop-color="#9f9688"/>
+      <stop offset="100%" stop-color="#5e574f"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="420" rx="30" fill="url(#bg)"/>
+  <rect x="266" y="25" width="68" height="370" rx="24" fill="url(#metal)" opacity="0.66"/>
+  <circle cx="300" cy="210" r="118" fill="#fff" stroke="url(#metal)" stroke-width="16"/>
+  <circle cx="300" cy="210" r="94" fill="#faf8f3" stroke="#9f9688" stroke-width="2"/>
+  <line x1="300" y1="210" x2="300" y2="155" stroke="#5e574f" stroke-width="5" stroke-linecap="round"/>
+  <line x1="300" y1="210" x2="338" y2="244" stroke="#5e574f" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="300" cy="210" r="7" fill="#5e574f"/>
+</svg>

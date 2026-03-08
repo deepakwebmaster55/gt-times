@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Glamtreasure logo</title>
+  <desc id="desc">Gold GT monogram with crown for Glamtreasure</desc>
+  <defs>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f8df8f"/>
+      <stop offset="40%" stop-color="#d6a930"/>
+      <stop offset="100%" stop-color="#8d6208"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="44" fill="#f5f2eb"/>
+  <g fill="none" stroke="url(#gold)" stroke-linecap="round" stroke-width="22">
+    <path d="M116 275c0-67 48-115 111-115h22l-31 30h-9c-43 0-74 34-74 84s31 84 74 84c31 0 56-17 67-43h-72v-26h104v14c-8 60-48 84-103 84-78 0-133-54-133-128Z"/>
+    <path d="M380 361c-17 16-40 26-65 26-79 0-133-56-133-128s54-128 133-128c26 0 49 9 67 25l-19 20c-13-10-29-16-48-16-43 0-75 34-75 99s32 99 75 99c18 0 34-6 47-17l18 20Z"/>
+    <path d="M214 156 300 344"/>
+    <path d="M321 178h76"/>
+    <path d="M360 178v176"/>
+  </g>
+  <g fill="url(#gold)">
+    <circle cx="205" cy="94" r="9"/>
+    <circle cx="243" cy="74" r="10"/>
+    <circle cx="278" cy="58" r="12"/>
+    <circle cx="315" cy="74" r="10"/>
+    <circle cx="351" cy="94" r="9"/>
+    <path d="M200 106 234 93l38-24 40 24 32 13-11 30H211l-11-30Z"/>
+  </g>
+  <text x="256" y="464" text-anchor="middle" fill="#151515" font-size="54" font-family="Georgia, 'Times New Roman', serif" letter-spacing="6">GLAMTREASURE</text>
+</svg>
