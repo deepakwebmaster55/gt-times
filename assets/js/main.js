@@ -82,7 +82,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const next = carousel.querySelector("[data-carousel-next]");
     if (!windowEl) return;
 
-    const step = () => Math.max(280, Math.floor(windowEl.clientWidth * 0.82));
+    const step = () => Math.max(260, Math.floor(windowEl.clientWidth * 0.82));
 
     if (prev) {
       prev.addEventListener("click", () => {
@@ -95,8 +95,22 @@ document.addEventListener("DOMContentLoaded", () => {
         windowEl.scrollBy({ left: step(), behavior: "smooth" });
       });
     }
-  });
 
+    const autoplay = carousel.getAttribute("data-carousel-autoplay") === "true";
+    const interval = Number(carousel.getAttribute("data-carousel-interval") || 2500);
+    if (autoplay) {
+      setInterval(() => {
+        const maxScroll = windowEl.scrollWidth - windowEl.clientWidth;
+        if (maxScroll <= 0) return;
+        const nextPos = windowEl.scrollLeft + step();
+        if (nextPos >= maxScroll - 8) {
+          windowEl.scrollTo({ left: 0, behavior: "smooth" });
+        } else {
+          windowEl.scrollBy({ left: step(), behavior: "smooth" });
+        }
+      }, interval);
+    }
+  });
   const filterButtons = document.querySelectorAll(".filter-btn");
   const productCards = document.querySelectorAll(".product-card");
 
@@ -104,20 +118,24 @@ document.addEventListener("DOMContentLoaded", () => {
     const title = card.querySelector(".product-title");
     const link = card.querySelector("a.btn");
     if (!title || !link) return;
+    if (link.getAttribute("href") && link.getAttribute("href").includes("?watch=")) return;
     const slug = slugify(title.textContent);
     if (!slug) return;
     link.href = `product-royal-crown-gold.html?watch=${encodeURIComponent(slug)}`;
   });
 
+  let currentFilter = "all";
+  let currentQuery = "";
+
   const applyFilter = (target) => {
     const normalized = (target || "all").toLowerCase();
     const map = {
       sports: "sport",
-      smart: "luxury",
-      premium: "luxury",
-      digital: "minimal"
+      handbags: "handbags",
+      wallets: "wallets"
     };
     const finalTarget = map[normalized] || normalized;
+    currentFilter = finalTarget;
 
     filterButtons.forEach((btn) => {
       const btnFilter = (btn.getAttribute("data-filter") || "").toLowerCase();
@@ -125,14 +143,19 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     productCards.forEach((card) => {
-      if (!finalTarget || finalTarget === "all") {
-        card.classList.remove("hidden");
-        return;
-      }
       const cardTag = (card.getAttribute("data-category") || "").toLowerCase();
       const cardStyle = (card.getAttribute("data-style") || "").toLowerCase();
-      card.classList.toggle("hidden", !(cardTag === finalTarget || cardStyle === finalTarget));
+      const text = (card.textContent || "").toLowerCase();
+      const matchesCategory =
+        !finalTarget || finalTarget === "all" || cardTag === finalTarget || cardStyle === finalTarget;
+      const matchesQuery = !currentQuery || text.includes(currentQuery);
+      card.classList.toggle("hidden", !(matchesCategory && matchesQuery));
     });
+  };
+
+  const applySearch = (query) => {
+    currentQuery = (query || "").toLowerCase().trim();
+    applyFilter(currentFilter);
   };
 
   filterButtons.forEach((button) => {
@@ -146,6 +169,38 @@ document.addEventListener("DOMContentLoaded", () => {
   if (categoryParam && filterButtons.length > 0) {
     applyFilter(categoryParam);
   }
+
+  const searchParam = new URLSearchParams(window.location.search).get("q");
+  const isShopPage = !!document.querySelector(".shop-tools");
+  if (searchParam && isShopPage) {
+    applySearch(searchParam);
+  }
+
+  const searchForms = document.querySelectorAll("[data-search-form]");
+  const searchInputs = document.querySelectorAll("[data-search-input]");
+  searchInputs.forEach((input) => {
+    if (searchParam) input.value = searchParam;
+  });
+  searchForms.forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const input = form.querySelector("[data-search-input]");
+      const query = input ? input.value.trim() : "";
+      if (!isShopPage) {
+        const target = query ? `shop.html?q=${encodeURIComponent(query)}` : "shop.html";
+        window.location.href = target;
+        return;
+      }
+      applySearch(query);
+      const url = new URL(window.location.href);
+      if (query) {
+        url.searchParams.set("q", query);
+      } else {
+        url.searchParams.delete("q");
+      }
+      window.history.replaceState({}, "", url.toString());
+    });
+  });
 
   const gallery = document.querySelector("[data-product-gallery]");
   if (gallery) {
@@ -280,8 +335,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let imageIndex = 0;
 
     const render = () => {
-      const watch = watches[index];
-      if (!watch) return;
+      const watch = watches[index];      if (!watch) return;
 
       nameEl.textContent = watch.name;
       typeEl.textContent = watch.type;
@@ -354,6 +408,19 @@ document.addEventListener("DOMContentLoaded", () => {
       .replace(/[^a-z0-9\s-]/g, "")
       .trim()
       .replace(/\s+/g, "-");
+
+  const inferItemType = (slug = "") => {
+    const value = slug.toLowerCase();
+    if (value.includes("shade") || value.includes("sunglass") || value.includes("aviator") || value.includes("frame")) return "Shades";
+    if (value.includes("goggle")) return "Goggles";
+    if (value.includes("handbag") || value.includes("carryall") || value.includes("tote") || value.includes("satchel") || value.includes("quilted") || value.includes("bag")) return "Handbag";
+    if (value.includes("shoe") || value.includes("sneaker") || value.includes("loafer") || value.includes("trainer") || value.includes("heel")) return "Shoes";
+    if (value.includes("perfume") || value.includes("parfum") || value.includes("eau") || value.includes("mist") || value.includes("musk") || value.includes("oud") || value.includes("amber") || value.includes("velvet") || value.includes("bloom") || value.includes("noir")) return "Perfume";
+    if (value.includes("jewel") || value.includes("bracelet") || value.includes("necklace") || value.includes("stud") || value.includes("halo") || value.includes("radiance")) return "Jewelry";
+    if (value.includes("belt")) return "Belt";
+    if (value.includes("wallet")) return "Wallet";
+    return "Watch";
+  };
 
   const titleCase = (slug) =>
     (slug || "watch")
@@ -432,6 +499,8 @@ document.addEventListener("DOMContentLoaded", () => {
       stock: "In stock.",
       images: fallbackImages
     };
+  const itemType = watch.itemType || inferItemType(watchParam);
+  const itemLabel = itemType ? " " + itemType : "";
 
   const pageTitle = document.querySelector("[data-product-page-title]");
   const breadcrumb = document.querySelector("[data-product-breadcrumb]");
@@ -448,14 +517,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (pageTitle) pageTitle.textContent = watch.name;
   if (breadcrumb) breadcrumb.textContent = `Home / Shop / ${watch.name}`;
-  if (title) title.textContent = `${watch.name} Watch`;
+  if (title) title.textContent = `${watch.name}${itemLabel}`;
   if (subtitle) subtitle.textContent = watch.subtitle;
   if (rating) rating.textContent = watch.rating;
   if (price) price.textContent = watch.price;
   if (oldPrice) oldPrice.textContent = watch.oldPrice;
   if (desc) desc.textContent = watch.desc;
   if (stock) stock.textContent = watch.stock;
-  document.title = `${watch.name} Watch | Glamtreasure`;
+  document.title = `${watch.name}${itemLabel} | Glamtreasure`;
+  const strapLabel = document.querySelector("label[for=\"strap-select\"]");
+  const sizeLabel = document.querySelector("label[for=\"size-select\"]");
+  const strapSelect = document.querySelector("#strap-select");
+  const sizeSelect = document.querySelector("#size-select");
+
+  if (itemType !== "Watch" && strapLabel && sizeLabel && strapSelect && sizeSelect) {
+    strapLabel.textContent = "Variant";
+    sizeLabel.textContent = "Size / Style";
+    strapSelect.innerHTML = "<option>Standard Variant</option><option>Premium Variant</option><option>Limited Edition</option>";
+    sizeSelect.innerHTML = "<option>Small</option><option>Medium</option><option>Large</option>";
+  }
 
   if (buyLink) {
     const msg = encodeURIComponent(`I want to buy ${watch.name} from Glamtreasure.`);
@@ -478,6 +558,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

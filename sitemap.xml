@@ -11,6 +11,11 @@
     <priority>0.9</priority>
   </url>
   <url>
+    <loc>https://glamtreasure.shop/categories.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
     <loc>https://glamtreasure.shop/luxury.html</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -41,6 +46,16 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://glamtreasure.shop/blog-accessory-style.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://glamtreasure.shop/blog-perfume-guide.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://glamtreasure.shop/policies.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -59,11 +74,5 @@
     <loc>https://glamtreasure.shop/product-royal-crown-gold.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
-  </url>  <url>
-    <loc>https://glamtreasure.shop/categories.html</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url></urlset>
-
-
-
+  </url>
+</urlset>
