@@ -1,4 +1,22 @@
-document.addEventListener("DOMContentLoaded", () => {
+const onReady = (fn) => {
+  const wait = window.GT_DATA_READY && typeof window.GT_DATA_READY.then === "function"
+    ? Promise.race([
+        window.GT_DATA_READY.catch(() => {}),
+        new Promise((resolve) => setTimeout(resolve, 1200))
+      ])
+    : Promise.resolve();
+
+  wait.finally(() => {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", fn);
+    } else {
+      fn();
+    }
+  });
+};
+document.documentElement.classList.add("js-ready");
+onReady(() => {
+  document.documentElement.classList.add("js");
   const slugify = (text) =>
     (text || "")
       .toLowerCase()
@@ -6,7 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
       .trim()
       .replace(/\s+/g, "-");
 
-  const menuToggle = document.querySelector(".menu-toggle");
+    const menuToggle = document.querySelector(".menu-toggle");
   const nav = document.querySelector(".main-nav");
 
   if (menuToggle && nav) {
@@ -16,11 +34,200 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  const announcements = [
+  const moveAccountToMenu = () => {
+    const navList = document.querySelector(".main-nav ul");
+    const headerActions = document.querySelector(".header-actions");
+    if (!navList || !headerActions) return;
+    const accountLink = Array.from(headerActions.querySelectorAll("a")).find((link) =>
+      (link.textContent || "").toLowerCase().includes("account")
+    );
+    if (!accountLink) return;
+    if (!navList.querySelector("[data-account-link]")) {
+      const li = document.createElement("li");
+      accountLink.setAttribute("data-account-link", "true");
+      li.appendChild(accountLink);
+      navList.appendChild(li);
+    }
+  };
+
+  const highlightActiveLinks = () => {
+    const rawPath = window.location.pathname || "";
+    const fileName = rawPath.split("/").filter(Boolean).pop() || "index.html";
+    let current = fileName;
+
+    if (current.startsWith("blog-")) {
+      current = "blog.html";
+    }
+
+    if (current.startsWith("product-")) {
+      current = "shop.html";
+    }
+
+    if (current === "luxury.html" || current === "everyday.html") {
+      current = "categories.html";
+    }
+
+    const links = document.querySelectorAll("a[href]");
+    links.forEach((link) => {
+      const href = link.getAttribute("href") || "";
+      if (!href || href.startsWith("http") || href.startsWith("mailto:") || href.startsWith("tel:")) return;
+      const cleanHref = href.split("#")[0].split("?")[0];
+      if (cleanHref === current) {
+        link.classList.add("is-active");
+        link.setAttribute("aria-current", "page");
+      }
+    });
+  };
+
+  const ensureFooterSocials = () => {
+    const socials = [
+      { label: "Instagram", href: "https://www.instagram.com/gt__times/?utm_source=ig_web_button_share_sheet" },
+      { label: "Facebook", href: "https://www.facebook.com/share/17vZcymJNP/" },
+      { label: "YouTube", href: "https://youtube.com/@gt-times?si=baXaA0kPcRecYYPB" }
+    ];
+
+    const footers = document.querySelectorAll("footer.site-footer");
+    footers.forEach((footer) => {
+      const existing = footer.querySelector(".social-links");
+      const socialWrap = existing || document.createElement("div");
+      socialWrap.className = "social-links footer-socials";
+      socialWrap.style.marginTop = "0";
+      socials.forEach((item) => {
+        if (!Array.from(socialWrap.querySelectorAll("a")).some((link) => link.textContent === item.label)) {
+          const a = document.createElement("a");
+          a.href = item.href;
+          a.target = "_blank";
+          a.rel = "noopener";
+          a.textContent = item.label;
+          socialWrap.appendChild(a);
+        }
+      });
+      const footerBottom = footer.querySelector(".footer-bottom");
+      if (footerBottom) {
+        footerBottom.appendChild(socialWrap);
+      } else if (!existing) {
+        footer.appendChild(socialWrap);
+      }
+    });
+  };
+
+  const setupTopTicker = () => {
+    const topStrip = document.querySelector(".top-strip");
+    if (!topStrip) return;
+    const container = topStrip.querySelector(".container") || topStrip;
+    container.innerHTML = "";
+    const link = document.createElement("a");
+    link.className = "top-ticker";
+    link.href = "shop.html";
+    link.setAttribute("aria-label", "Store updates");
+    link.innerHTML = `
+      <span class="ticker-track">
+        <span class="ticker-item">COD available with non-refundable token amount</span>
+        <span class="ticker-item">Free shipping above Rs. 5000</span>
+        <span class="ticker-item">Call: +91 74950 98330</span>
+        <span class="ticker-item">glamtreasure03@gmail.com</span>
+        <span class="ticker-item">JavaScript</span>
+        <span class="ticker-item">HTML5</span>
+        <span class="ticker-item">CSS3</span>
+        <span class="ticker-item">MongoDB</span>
+      </span>
+      <span class="ticker-track" aria-hidden="true">
+        <span class="ticker-item">COD available with non-refundable token amount</span>
+        <span class="ticker-item">Free shipping above Rs. 5000</span>
+        <span class="ticker-item">Call: +91 74950 98330</span>
+        <span class="ticker-item">glamtreasure03@gmail.com</span>
+        <span class="ticker-item">JavaScript</span>
+        <span class="ticker-item">HTML5</span>
+        <span class="ticker-item">CSS3</span>
+        <span class="ticker-item">MongoDB</span>
+      </span>
+    `;
+    container.appendChild(link);
+  };
+
+  const setupMobileHeaderStack = () => {
+    if (!window.matchMedia("(max-width: 620px)").matches) return;
+    const header = document.querySelector(".site-header");
+    const topStrip = document.querySelector(".top-strip");
+    const announce = document.querySelector(".announcement-bar");
+    const headerActions = document.querySelector(".header-actions");
+    const navShell = document.querySelector(".nav-shell");
+    const menuToggle = document.querySelector(".menu-toggle");
+    if (!header || !topStrip || !announce) return;
+    if (!header.querySelector(".top-strip")) {
+      header.appendChild(topStrip);
+    }
+    if (!header.querySelector(".announcement-bar")) {
+      header.appendChild(announce);
+    }
+    if (headerActions && navShell && menuToggle) {
+      const cartLink = Array.from(headerActions.querySelectorAll("a")).find((link) =>
+        (link.textContent || "").toLowerCase().includes("cart")
+      );
+      if (cartLink && !navShell.querySelector(".mobile-cart")) {
+        cartLink.classList.add("mobile-cart");
+        navShell.insertBefore(cartLink, menuToggle.nextSibling);
+      }
+    }
+    if (headerActions && !headerActions.classList.contains("stacked")) {
+      headerActions.classList.add("stacked");
+      header.appendChild(headerActions);
+    }
+  };
+
+  const setupWhatsAppBubble = () => {
+    const path = (window.location.pathname || "").toLowerCase();
+    const excluded =
+      path.includes("blog") ||
+      path.includes("policies") ||
+      path.includes("faq");
+    const wa = document.querySelector(".wa-float");
+    if (!wa) return;
+    if (excluded) {
+      wa.remove();
+      return;
+    }
+    wa.classList.add("wa-icon");
+    wa.setAttribute("aria-label", "WhatsApp");
+    wa.setAttribute("title", "WhatsApp");
+    wa.textContent = "";
+  };
+
+  const showContactToast = () => {
+    const path = (window.location.pathname || "").toLowerCase();
+    const excluded =
+      path.includes("blog") ||
+      path.includes("policies") ||
+      path.includes("faq");
+    if (excluded) return;
+    const toast = document.createElement("div");
+    toast.className = "contact-toast";
+    toast.textContent = "Contact us!";
+    document.body.appendChild(toast);
+    setTimeout(() => toast.classList.add("show"), 150);
+    setTimeout(() => {
+      toast.classList.remove("show");
+      setTimeout(() => toast.remove(), 300);
+    }, 2600);
+  };
+
+  moveAccountToMenu();
+  setupTopTicker();
+  setupMobileHeaderStack();
+  setupWhatsAppBubble();
+  showContactToast();
+  highlightActiveLinks();
+  ensureFooterSocials();
+
+  let announcements = [
     "Buy any 2 watches and get Rs. 1000 OFF - Code: TIME1000",
     "Free shipping on orders above Rs. 5000",
     "COD available with non-refundable token amount"
   ];
+
+  if (window.GT_ANNOUNCEMENTS && window.GT_ANNOUNCEMENTS.length) {
+    announcements = window.GT_ANNOUNCEMENTS;
+  }
 
   const announceEl = document.querySelector("[data-announcement]");
   if (announceEl) {
@@ -69,7 +276,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (nextBtn) nextBtn.addEventListener("click", () => goTo(index + 1));
 
     const autoplay = slider.getAttribute("data-autoplay") === "true";
-    const interval = Number(slider.getAttribute("data-interval") || 4200);
+    const interval = Number(slider.getAttribute("data-interval") || 4000);
     if (autoplay) {
       setInterval(() => goTo(index + 1), interval);
     }
@@ -97,7 +304,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const autoplay = carousel.getAttribute("data-carousel-autoplay") === "true";
-    const interval = Number(carousel.getAttribute("data-carousel-interval") || 2500);
+    const interval = Number(carousel.getAttribute("data-carousel-interval") || 4000);
     if (autoplay) {
       setInterval(() => {
         const maxScroll = windowEl.scrollWidth - windowEl.clientWidth;
@@ -111,8 +318,10 @@ document.addEventListener("DOMContentLoaded", () => {
       }, interval);
     }
   });
+  const initShopFilters = () => {
   const filterButtons = document.querySelectorAll(".filter-btn");
   const productCards = document.querySelectorAll(".product-card");
+  if (!filterButtons.length && !productCards.length) return;
 
   productCards.forEach((card) => {
     const title = card.querySelector(".product-title");
@@ -201,6 +410,10 @@ document.addEventListener("DOMContentLoaded", () => {
       window.history.replaceState({}, "", url.toString());
     });
   });
+};
+
+window.initShopFilters = initShopFilters;
+initShopFilters();
 
   const gallery = document.querySelector("[data-product-gallery]");
   if (gallery) {
@@ -257,65 +470,61 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
 
-  const forms = document.querySelectorAll("form[data-demo-form]");
+  const forms = document.querySelectorAll("form[data-formspree]");
   forms.forEach((form) => {
-    form.addEventListener("submit", (event) => {
+    form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const status = form.querySelector(".form-status");
-      if (status) status.textContent = "Thank you. Glamtreasure team will contact you shortly.";
-      form.reset();
+      if (status) {
+        status.classList.remove("is-success", "is-error");
+        status.textContent = "Sending...";
+      }
+      try {
+        const formData = new FormData(form);
+        const response = await fetch(form.action, {
+          method: "POST",
+          body: formData,
+          headers: { Accept: "application/json" }
+        });
+        if (response.ok) {
+          if (status) {
+            status.classList.add("is-success");
+            status.textContent = "Form saved. You will get a reply within 48 hours.";
+          }
+          form.reset();
+        } else {
+          if (status) {
+            status.classList.add("is-error");
+            status.textContent = "Something went wrong. Please try again.";
+          }
+        }
+      } catch (error) {
+        if (status) {
+          status.classList.add("is-error");
+          status.textContent = "Network error. Please try again.";
+        }
+      }
     });
   });
 });
 
-document.addEventListener("DOMContentLoaded", () => {
-  const showcases = document.querySelectorAll("[data-watch-showcase]");
+onReady(() => {  const showcases = document.querySelectorAll("[data-watch-showcase]");
   if (showcases.length === 0) return;
 
-  const watches = [
-    {
-      name: "Royal Crown Gold",
-      type: "Luxury Statement Watch",
-      tagline: "Design For Bold Moments",
-      desc: "A premium luxury watch with polished gold finish, bold dial balance, and standout wrist presence for events and formal looks.",
-      oldPrice: "Rs. 59,999",
-      newPrice: "Rs. 49,999",
-      images: [
-        "https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?auto=compress&cs=tinysrgb&w=1400",
-        "https://images.pexels.com/photos/280250/pexels-photo-280250.jpeg?auto=compress&cs=tinysrgb&w=1400",
-        "https://images.pexels.com/photos/277390/pexels-photo-277390.jpeg?auto=compress&cs=tinysrgb&w=1400"
-      ],
-      colors: ["Gold", "Silver", "Blue"]
-    },
-    {
-      name: "Aero Smart Series",
-      type: "Smart Performance Watch",
-      tagline: "Track Every Move",
-      desc: "Smart design built for productivity and fitness tracking while preserving elegant premium aesthetics.",
-      oldPrice: "Rs. 38,499",
-      newPrice: "Rs. 32,999",
-      images: [
-        "https://images.pexels.com/photos/280250/pexels-photo-280250.jpeg?auto=compress&cs=tinysrgb&w=1400",
-        "https://images.pexels.com/photos/1697214/pexels-photo-1697214.jpeg?auto=compress&cs=tinysrgb&w=1400",
-        "https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?auto=compress&cs=tinysrgb&w=1400"
-      ],
-      colors: ["Graphite", "Black", "Blue"]
-    },
-    {
-      name: "Titanium Edge Pro",
-      type: "Sports Luxury Watch",
-      tagline: "Power In Every Second",
-      desc: "Engineered for active use with robust construction and strong premium detailing for modern athletes.",
-      oldPrice: "Rs. 48,499",
-      newPrice: "Rs. 39,999",
-      images: [
-        "https://images.pexels.com/photos/364822/pexels-photo-364822.jpeg?auto=compress&cs=tinysrgb&w=1400",
-        "https://images.pexels.com/photos/277390/pexels-photo-277390.jpeg?auto=compress&cs=tinysrgb&w=1400",
-        "https://images.pexels.com/photos/1697214/pexels-photo-1697214.jpeg?auto=compress&cs=tinysrgb&w=1400"
-      ],
-      colors: ["Black", "Grey", "Orange"]
-    }
-  ];
+  const watches = (window.GT_SHOWCASE_DATA && window.GT_SHOWCASE_DATA.length)
+    ? window.GT_SHOWCASE_DATA
+    : [];
+
+  if (!watches.length) {
+    showcases.forEach((showcase) => {
+      showcase.innerHTML = "";
+      const note = document.createElement("p");
+      note.className = "empty-note";
+      note.textContent = "No signature products yet. We will add soon.";
+      showcase.appendChild(note);
+    });
+    return;
+  }
 
   showcases.forEach((showcase) => {
     const nameEl = showcase.querySelector("[data-showcase-name]");
@@ -349,6 +558,7 @@ document.addEventListener("DOMContentLoaded", () => {
       imgEl.src = images[imageIndex] || "";
       imgEl.alt = `${watch.name} showcase`;
 
+      const colorImages = watch.colorImages || {};
       colorsEl.innerHTML = "";
       watch.colors.forEach((color, i) => {
         const btn = document.createElement("button");
@@ -361,12 +571,16 @@ document.addEventListener("DOMContentLoaded", () => {
           colorsEl.querySelectorAll(".color-dot").forEach((x) => x.classList.remove("is-active"));
           btn.classList.add("is-active");
           selectedColorEl.textContent = color;
+          const imgUrl = colorImages[color];
+          if (imgUrl) {
+            imgEl.src = imgUrl;
+          }
         });
         colorsEl.appendChild(btn);
       });
 
       selectedColorEl.textContent = watch.colors[0];
-    };
+    }
 
     if (nextBtn) {
       nextBtn.addEventListener("click", () => {
@@ -398,9 +612,11 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-document.addEventListener("DOMContentLoaded", () => {
+onReady(() => {
   const productPage = document.querySelector("[data-product-page]");
   if (!productPage) return;
+
+  const run = () => {
 
   const slugify = (text) =>
     (text || "")
@@ -428,6 +644,45 @@ document.addEventListener("DOMContentLoaded", () => {
       .filter(Boolean)
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join(" ");
+
+  const normalizeImages = (value) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+        return trimmed
+          .slice(1, -1)
+          .split(",")
+          .map((item) => item.replace(/^\"|\"$/g, "").trim())
+          .filter(Boolean);
+      }
+      if (trimmed.startsWith("[")) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) return parsed;
+        } catch (error) {
+          return trimmed ? [trimmed] : [];
+        }
+      }
+      if (trimmed) return [trimmed];
+      return trimmed ? [trimmed] : [];
+    }
+    return value ? [value] : [];
+  };
+
+  const normalizeColorImages = (value) => {
+    if (!value) return {};
+    if (typeof value === "string") {
+      try {
+        const parsed = JSON.parse(value);
+        if (parsed && typeof parsed === "object") return parsed;
+      } catch (error) {
+        return {};
+      }
+    }
+    if (typeof value === "object") return value;
+    return {};
+  };
 
   const watchCatalog = {
     "royal-crown-gold": {
@@ -499,6 +754,25 @@ document.addEventListener("DOMContentLoaded", () => {
       stock: "In stock.",
       images: fallbackImages
     };
+  if (window.GT_PRODUCT_DETAIL) {
+    const db = window.GT_PRODUCT_DETAIL;
+    const dbGallery = normalizeImages(db.gallery);
+    const dbImagesRaw = normalizeImages(db.images);
+    const dbImages = dbGallery.length ? dbGallery : dbImagesRaw;
+    Object.assign(watch, {
+      name: db.title || watch.name,
+      rating: db.rating ? `${db.rating} stars` : watch.rating,
+      price: db.price ? `Rs. ${Number(db.price).toLocaleString()}` : watch.price,
+      oldPrice: db.old_price ? `Rs. ${Number(db.old_price).toLocaleString()}` : watch.oldPrice,
+      subtitle: db.subtitle || watch.subtitle,
+      desc: db.description || db.short_desc || watch.desc,
+      stock: db.stock || watch.stock,
+      images: dbImages.length ? dbImages : watch.images,
+      specs: db.specs,
+      colors: db.colors || watch.colors,
+      colorImages: normalizeColorImages(db.color_images)
+    });
+  }
   const itemType = watch.itemType || inferItemType(watchParam);
   const itemLabel = itemType ? " " + itemType : "";
 
@@ -514,6 +788,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const mainImage = document.querySelector("#main-product-image");
   const thumbs = Array.from(document.querySelectorAll(".thumb-btn"));
   const buyLink = document.querySelector("[data-product-buy-link]");
+  const galleryWrap = document.querySelector(".product-gallery");
+  const detailsWrap = document.querySelector(".product-details-panel");
+  const colorDotsWrap = document.querySelector("[data-color-dots]");
 
   if (pageTitle) pageTitle.textContent = watch.name;
   if (breadcrumb) breadcrumb.textContent = `Home / Shop / ${watch.name}`;
@@ -525,6 +802,29 @@ document.addEventListener("DOMContentLoaded", () => {
   if (desc) desc.textContent = watch.desc;
   if (stock) stock.textContent = watch.stock;
   document.title = `${watch.name}${itemLabel} | Glamtreasure`;
+
+  const specsList = document.querySelector("[data-product-specs]");
+  if (specsList) {
+    const defaultSpecs = [
+      { label: "Case", value: "Stainless Steel" },
+      { label: "Movement", value: "Automatic Quartz Hybrid" },
+      { label: "Water Resistance", value: "50m" },
+      { label: "Strap", value: "Metal / Leather options" },
+      { label: "Warranty", value: "2 Year Support" }
+    ];
+
+    let specs = [];
+    if (Array.isArray(watch.specs)) {
+      specs = watch.specs;
+    } else if (watch.specs && typeof watch.specs === "object") {
+      specs = Object.entries(watch.specs).map(([label, value]) => ({ label, value }));
+    }
+
+    const list = specs.length ? specs : defaultSpecs;
+    specsList.innerHTML = list
+      .map((item) => `<li><strong>${item.label}:</strong> ${item.value}</li>`)
+      .join("");
+  }
   const strapLabel = document.querySelector("label[for=\"strap-select\"]");
   const sizeLabel = document.querySelector("label[for=\"size-select\"]");
   const strapSelect = document.querySelector("#strap-select");
@@ -557,7 +857,86 @@ document.addEventListener("DOMContentLoaded", () => {
       thumbImg.alt = `${watch.name} thumbnail ${i + 1}`;
     }
   });
+
+  if (colorDotsWrap && Array.isArray(watch.colors) && watch.colors.length) {
+    colorDotsWrap.innerHTML = "";
+    const colorImages = watch.colorImages || {};
+    watch.colors.forEach((color, index) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "color-dot" + (index === 0 ? " is-active" : "");
+      btn.setAttribute("aria-label", color);
+      btn.style.setProperty("--dot", color);
+      btn.addEventListener("click", () => {
+        colorDotsWrap.querySelectorAll(".color-dot").forEach((dot) => dot.classList.remove("is-active"));
+        btn.classList.add("is-active");
+        const imgUrl = colorImages[color];
+        if (imgUrl && mainImage) {
+          mainImage.src = imgUrl;
+          mainImage.alt = `${watch.name} ${color}`;
+        }
+      });
+      colorDotsWrap.appendChild(btn);
+    });
+    const firstColor = watch.colors[0];
+    const firstUrl = colorImages[firstColor];
+    if (firstUrl && mainImage) {
+      mainImage.src = firstUrl;
+      mainImage.alt = `${watch.name} ${firstColor}`;
+    }
+  } else if (colorDotsWrap) {
+    colorDotsWrap.innerHTML = "<span class=\"small\">No colors listed.</span>";
+  }
+
+  if (galleryWrap) {
+    galleryWrap.classList.remove("is-skeleton");
+    const skel = galleryWrap.querySelector(".product-skeleton");
+    if (skel) skel.remove();
+  }
+  if (detailsWrap) {
+    detailsWrap.classList.remove("is-skeleton");
+    const skel = detailsWrap.querySelector(".product-skeleton");
+    if (skel) skel.remove();
+  }
+  };
+
+  if (window.GT_DATA_READY && typeof window.GT_DATA_READY.finally === "function") {
+    window.GT_DATA_READY.finally(run);
+  } else {
+    run();
+  }
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
