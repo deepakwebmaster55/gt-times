@@ -32,6 +32,23 @@
     if (paymentsSection) paymentsSection.style.display = authed ? "block" : "none";
   };
 
+  const getReturnTo = () => {
+    const stored = sessionStorage.getItem("gt_return_to");
+    if (!stored) return "";
+    if (stored.includes("login.html") || stored.includes("signup.html") || stored.includes("account.html")) {
+      return "";
+    }
+    return stored;
+  };
+
+  const maybeRedirect = () => {
+    const target = getReturnTo();
+    if (!target) return false;
+    sessionStorage.removeItem("gt_return_to");
+    window.location.href = target;
+    return true;
+  };
+
   const fillProfile = (profile, session) => {
     const nameInput = document.querySelector("#profile-name");
     const phoneInput = document.querySelector("#profile-phone");
@@ -258,6 +275,7 @@
 
     const session = await window.GTStore.getSession();
     if (session && client) {
+      if (maybeRedirect()) return;
       toggleSections(true);
       const profile = await loadProfile(client, session);
       fillProfile(profile, session);
@@ -271,6 +289,7 @@
     if (client) {
       client.auth.onAuthStateChange(async (event, sessionNext) => {
         if (sessionNext) {
+          if (maybeRedirect()) return;
           toggleSections(true);
           const profile = await loadProfile(client, sessionNext);
           fillProfile(profile, sessionNext);

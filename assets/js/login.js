@@ -28,6 +28,18 @@
     return path.replace(/[^/]+$/, "");
   };
 
+  const getReturnTo = () => {
+    const stored = sessionStorage.getItem("gt_return_to");
+    if (!stored || stored.includes("login.html") || stored.includes("signup.html")) return "account.html";
+    return stored;
+  };
+
+  const redirectAfterAuth = () => {
+    const target = getReturnTo();
+    sessionStorage.removeItem("gt_return_to");
+    window.location.href = target;
+  };
+
   if (loginForm) {
     loginForm.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -42,7 +54,7 @@
       }
       if (data?.session) {
         setStatus("Login successful. Redirecting...", false);
-        window.location.href = "account.html";
+        redirectAfterAuth();
       }
     });
   }

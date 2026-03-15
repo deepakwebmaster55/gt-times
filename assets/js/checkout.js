@@ -94,6 +94,19 @@
     if (addressNote) addressNote.textContent = addresses.length ? "" : "Add an address in your account first.";
   };
 
+  const ensurePhone = async (session) => {
+    const { data } = await window.GTStore.client
+      .from("profiles")
+      .select("phone")
+      .eq("id", session.user.id)
+      .maybeSingle();
+    if (!data?.phone) {
+      setStatus("Please add your phone number in Account before ordering.", true);
+      return false;
+    }
+    return true;
+  };
+
   const createBooking = async (items) => {
     if (!window.GTStore?.client) {
       setStatus("Supabase 3 keys missing.", true);
@@ -102,9 +115,16 @@
     const session = await window.GTStore.getSession();
     if (!session) {
       setStatus("Please login to place order.", true);
+      try {
+        sessionStorage.setItem("gt_return_to", window.location.href);
+      } catch (error) {
+        sessionStorage.setItem("gt_return_to", "checkout.html");
+      }
       window.location.href = "login.html";
       return;
     }
+    const hasPhone = await ensurePhone(session);
+    if (!hasPhone) return;
     const addressId = addressSelect?.value || "";
     if (!addressId) {
       setStatus("Please select a delivery address.", true);

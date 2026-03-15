@@ -55,15 +55,21 @@
   const handleBuyNow = async (event) => {
     event.preventDefault();
     if (!window.GTStore) return;
-    const session = await window.GTStore.getSession();
-    if (!session) {
-      setStatus("Please login to continue.", true);
-      window.location.href = "login.html";
-      return;
-    }
     const result = await window.GTStore.addToCart(buildItem());
     if (result?.error) {
       setStatus("Cart sync failed. Please try again.", true);
+      return;
+    }
+    const session = await window.GTStore.getSession();
+    if (!session) {
+      setStatus("Please login to continue.", true);
+      try {
+        const checkoutUrl = new URL("checkout.html", window.location.href).href;
+        sessionStorage.setItem("gt_return_to", checkoutUrl);
+      } catch (error) {
+        sessionStorage.setItem("gt_return_to", "checkout.html");
+      }
+      window.location.href = "login.html";
       return;
     }
     window.location.href = "checkout.html";

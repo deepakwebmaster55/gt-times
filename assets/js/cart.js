@@ -144,6 +144,12 @@
   const handleCheckout = async (items) => {
     const session = await window.GTStore.getSession();
     if (!session) {
+      try {
+        const checkoutUrl = new URL("checkout.html", window.location.href).href;
+        sessionStorage.setItem("gt_return_to", checkoutUrl);
+      } catch (error) {
+        sessionStorage.setItem("gt_return_to", "checkout.html");
+      }
       if (loginPrompt) loginPrompt.style.display = "block";
       setStatus("Login required to continue.", true);
       return;
@@ -164,6 +170,20 @@
       event.preventDefault();
       const items = await window.GTStore.loadCart();
       await handleCheckout(items);
+    });
+  }
+
+  if (loginPrompt) {
+    const authLinks = loginPrompt.querySelectorAll("a");
+    authLinks.forEach((link) => {
+      link.addEventListener("click", () => {
+        try {
+          const checkoutUrl = new URL("checkout.html", window.location.href).href;
+          sessionStorage.setItem("gt_return_to", checkoutUrl);
+        } catch (error) {
+          sessionStorage.setItem("gt_return_to", "checkout.html");
+        }
+      });
     });
   }
 

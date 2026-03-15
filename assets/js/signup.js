@@ -28,6 +28,18 @@
     return path.replace(/[^/]+$/, "");
   };
 
+  const getReturnTo = () => {
+    const stored = sessionStorage.getItem("gt_return_to");
+    if (!stored || stored.includes("login.html") || stored.includes("signup.html")) return "account.html";
+    return stored;
+  };
+
+  const redirectAfterAuth = () => {
+    const target = getReturnTo();
+    sessionStorage.removeItem("gt_return_to");
+    window.location.href = target;
+  };
+
   const ensureProfile = async (client, session, overrides = {}) => {
     if (!session?.user?.id) return;
     const meta = session?.user?.user_metadata || {};
@@ -66,7 +78,7 @@
       if (data?.session) {
         await ensureProfile(client, data.session, { full_name: fullName, phone, email });
         setStatus("Account created. Redirecting...", false);
-        window.location.href = "account.html";
+        redirectAfterAuth();
         return;
       }
       setStatus("Check your email to confirm your account.", false);
