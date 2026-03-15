@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My Account | Glamtreasure</title>
+  <meta name="description" content="Manage your Glamtreasure account, addresses, orders, and payments." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://glamtreasure.shop/account.html" />
+  <meta property="og:title" content="Glamtreasure Account" />
+  <meta property="og:description" content="Manage your profile, addresses, bookings, and payments." />
+  <meta property="og:url" content="https://glamtreasure.shop/account.html" />
+  <meta property="og:image" content="https://glamtreasure.shop/assets/images/logo.svg" />
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+  <div class="top-strip">
+    <div class="container">
+      <p>Welcome back. Manage your Glamtreasure profile and orders.</p>
+      <div class="top-links">
+        <a href="tel:+917495098330">+91 7495098330</a>
+        <a href="mailto:glamtreasure03@gmail.com">glamtreasure03@gmail.com</a>
+      </div>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <div class="container nav-shell">
+      <a class="brand" href="index.html">
+        <img src="assets/images/logo.svg" alt="Glamtreasure logo" />
+        <span>Glamtreasure</span>
+      </a>
+      <button class="menu-toggle" aria-label="Toggle menu" aria-expanded="false">Menu</button>
+      <nav class="main-nav" aria-label="Main navigation">
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="categories.html">Categories</a></li>
+          <li><a href="blog.html">Blog</a></li>
+          <li><a href="about.html">About</a></li>
+          <li><a href="policies.html">Policies</a></li>
+          <li><a class="cta-link" href="contact.html">Contact</a></li>
+        </ul>
+      </nav>
+      <div class="header-actions"><a href="account.html">Account</a><a href="cart.html">Cart (0)</a></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-hero">
+      <div class="container page-hero-card reveal">
+        <p class="breadcrumb">Home / Account</p>
+        <h1 class="section-title" style="margin-bottom:0.6rem;">My Account</h1>
+        <p class="section-subtitle">Update your profile, manage addresses, and review orders and payments.</p>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top:1.5rem;">
+      <div class="container">
+        <p class="form-status" data-account-status></p>
+      </div>
+    </section>
+
+    <section class="section section-tight" data-auth-section>
+      <div class="container account-grid">
+        <article class="account-card reveal">
+          <h3>Sign In</h3>
+          <p class="small">Access your saved cart and order history.</p>
+          <form class="form-grid" data-login-form>
+            <div>
+              <label for="login-email">Email</label>
+              <input id="login-email" name="email" type="email" placeholder="you@email.com" required />
+            </div>
+            <div>
+              <label for="login-password">Password</label>
+              <input id="login-password" name="password" type="password" placeholder="Your password" required />
+            </div>
+            <button class="btn btn-primary" type="submit">Sign In</button>
+          </form>
+          <div class="social-auth">
+            <button class="btn btn-outline" type="button" data-google-login>
+              <span class="google-icon" aria-hidden="true">G</span>
+              Continue with Google
+            </button>
+          </div>
+        </article>
+
+        <article class="account-card reveal">
+          <h3>Create Account</h3>
+          <p class="small">Save multiple addresses and track bookings.</p>
+          <form class="form-grid" data-signup-form>
+            <div>
+              <label for="signup-name">Full Name</label>
+              <input id="signup-name" name="full_name" type="text" placeholder="Your name" required />
+            </div>
+            <div>
+              <label for="signup-phone">Phone</label>
+              <input id="signup-phone" name="phone" type="tel" placeholder="Your phone" required />
+            </div>
+            <div>
+              <label for="signup-email">Email</label>
+              <input id="signup-email" name="email" type="email" placeholder="you@email.com" required />
+            </div>
+            <div>
+              <label for="signup-password">Password</label>
+              <input id="signup-password" name="password" type="password" placeholder="Create a password" required />
+            </div>
+            <button class="btn btn-secondary" type="submit">Create Account</button>
+          </form>
+          <div class="social-auth">
+            <button class="btn btn-outline" type="button" data-google-login>
+              <span class="google-icon" aria-hidden="true">G</span>
+              Continue with Google
+            </button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section section-tight" data-profile-section style="display:none;">
+      <div class="container account-grid">
+        <article class="account-card reveal">
+          <div class="account-header">
+            <h3>Profile Details</h3>
+            <button class="btn btn-outline" type="button" data-logout>Logout</button>
+          </div>
+          <form class="form-grid" data-profile-form>
+            <div>
+              <label for="profile-name">Full Name</label>
+              <input id="profile-name" type="text" placeholder="Your name" required />
+            </div>
+            <div>
+              <label for="profile-phone">Phone</label>
+              <input id="profile-phone" type="tel" placeholder="Phone number" required />
+            </div>
+            <div>
+              <label for="profile-email">Email</label>
+              <input id="profile-email" type="email" placeholder="Email" disabled />
+            </div>
+            <button class="btn btn-primary" type="submit">Save Changes</button>
+          </form>
+        </article>
+
+        <article class="account-card reveal" data-address-section style="display:none;">
+          <h3>Addresses</h3>
+          <div class="address-list" data-address-list></div>
+          <form class="form-grid" data-address-form>
+            <div>
+              <label for="address-label">Label</label>
+              <input id="address-label" name="label" type="text" placeholder="Home, Office" required />
+            </div>
+            <div>
+              <label for="address-line1">Address Line 1</label>
+              <input id="address-line1" name="line1" type="text" placeholder="Street address" required />
+            </div>
+            <div>
+              <label for="address-line2">Address Line 2</label>
+              <input id="address-line2" name="line2" type="text" placeholder="Apartment, landmark" />
+            </div>
+            <div>
+              <label for="address-city">City</label>
+              <input id="address-city" name="city" type="text" placeholder="City" />
+            </div>
+            <div>
+              <label for="address-state">State</label>
+              <input id="address-state" name="state" type="text" placeholder="State" />
+            </div>
+            <div>
+              <label for="address-postal">Postal Code</label>
+              <input id="address-postal" name="postal_code" type="text" placeholder="Postal code" />
+            </div>
+            <div>
+              <label for="address-country">Country</label>
+              <input id="address-country" name="country" type="text" placeholder="India" />
+            </div>
+            <label class="checkbox-row">
+              <input type="checkbox" name="is_default" />
+              Make this my default address
+            </label>
+            <button class="btn btn-secondary" type="submit">Add Address</button>
+          </form>
+        </article>
+      </div>
+    </section>
+
+    <section class="section section-tight" data-booking-section style="display:none;">
+      <div class="container">
+        <div class="account-card reveal">
+          <h3>Booking History</h3>
+          <div class="history-list" data-booking-list></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-tight" data-payment-section style="display:none;">
+      <div class="container">
+        <div class="account-card reveal">
+          <h3>Payments</h3>
+          <div class="history-list" data-payment-list></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <h3>Glamtreasure</h3>
+        <p>Premium watches and luxury accessories with trusted support and premium style.</p>
+        <ul class="footer-links">
+          <li><a href="mailto:glamtreasure03@gmail.com">glamtreasure03@gmail.com</a></li>
+          <li><a href="tel:+917495098330">074950 98330</a></li>
+          <li>V.P.O Rasulpur Distt Yamunanagar Main gali near sanatan dharam mandir</li>
+        </ul>
+        <div class="social-links" style="margin-top:0.9rem;">
+          <a href="https://www.instagram.com/gt__times/?utm_source=ig_web_button_share_sheet" target="_blank" rel="noopener">Instagram</a>
+          <a href="https://www.facebook.com/share/17vZcymJNP/" target="_blank" rel="noopener">Facebook</a>
+          <a href="https://youtube.com/@gt-times?si=baXaA0kPcRecYYPB" target="_blank" rel="noopener">YouTube</a>
+        </div>
+      </div>
+      <div>
+        <h4>Pages</h4>
+        <ul class="footer-links">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="categories.html">Categories</a></li>
+          <li><a href="shop.html">Shop</a></li>
+          <li><a href="blog.html">Blog</a></li>
+          <li><a href="about.html">About</a></li>
+          <li><a href="contact.html">Contact</a></li>
+          <li><a href="policies.html">Policies</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Blog</h4>
+        <ul class="footer-links">
+          <li><a href="blog.html">All Blog Articles</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Policy Sections</h4>
+        <ul class="footer-links">
+          <li><a href="policies.html#cod-policy">COD Token Policy</a></li>
+          <li><a href="policies.html#shipping-policy">Shipping Policy</a></li>
+          <li><a href="policies.html#return-policy">Returns</a></li>
+          <li><a href="policies.html#privacy-policy">Privacy</a></li>
+          <li><a href="policies.html#terms">Terms & Conditions</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="container footer-bottom">
+      <small>&copy; <span data-year></span> Glamtreasure (Gt times).</small>
+      <small>Domain: Glamtreasure.shop</small>
+    </div>
+  </footer>
+
+  <a class="wa-float" href="https://wa.me/917495098330" target="_blank" rel="noopener">WhatsApp</a>
+  <script src="assets/js/loader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/account.js"></script>
+  <script src="assets/js/main.js"></script>
+</body>
+</html>
+

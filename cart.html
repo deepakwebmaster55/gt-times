@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Style & Accessories Blog | Glamtreasure</title>
-  <meta name="description" content="Read Glamtreasure blog for watches, shades, handbags, shoes, perfumes, jewelry, belts, and wallets buying guides." />
+  <title>Cart | Glamtreasure</title>
+  <meta name="description" content="Review your Glamtreasure cart and place your order." />
   <meta name="robots" content="index, follow" />
-  <link rel="canonical" href="https://glamtreasure.shop/blog.html" />
-  <meta property="og:title" content="Glamtreasure Blog" />
-  <meta property="og:description" content="Watches, accessories, and premium styling guides." />
-  <meta property="og:url" content="https://glamtreasure.shop/blog.html" />
+  <link rel="canonical" href="https://glamtreasure.shop/cart.html" />
+  <meta property="og:title" content="Glamtreasure Cart" />
+  <meta property="og:description" content="Review items, update quantities, and checkout." />
+  <meta property="og:url" content="https://glamtreasure.shop/cart.html" />
   <meta property="og:image" content="https://glamtreasure.shop/assets/images/logo.svg" />
   <link rel="stylesheet" href="assets/css/styles.css" />
 </head>
 <body>
   <div class="top-strip">
     <div class="container">
-      <p>Glamtreasure Style Blog: Watches, accessories, and premium styling.</p>
+      <p>Review your cart and checkout with confidence.</p>
       <div class="top-links">
         <a href="tel:+917495098330">+91 7495098330</a>
         <a href="mailto:glamtreasure03@gmail.com">glamtreasure03@gmail.com</a>
@@ -48,57 +48,53 @@
   <main>
     <section class="page-hero">
       <div class="container page-hero-card reveal">
-        <p class="breadcrumb">Home / Blog</p>
-        <h1 class="section-title" style="margin-bottom:0.6rem;">Glamtreasure Blog</h1>
-        <p class="section-subtitle">Useful articles for buying, styling, and maintaining premium watches and accessories.</p>
+        <p class="breadcrumb">Home / Cart</p>
+        <h1 class="section-title" style="margin-bottom:0.6rem;">Your Cart</h1>
+        <p class="section-subtitle">Update quantities, review totals, and checkout.</p>
       </div>
     </section>
 
     <section class="section" style="padding-top:1.5rem;">
-  <div class="container grid-3">
-    <article class="blog-card reveal">
-      <p class="meta">March 2026 | Watch Care</p>
-      <h3>How to Keep Your Watch Looking Premium for Years</h3>
-      <p>Simple cleaning and storage habits that protect shine, dial clarity, and strap life.</p>
-      <a class="btn btn-secondary" href="blog-watch-care.html">Read Article</a>
-    </article>
-
-    <article class="blog-card reveal">
-      <p class="meta">March 2026 | Buying Guide</p>
-      <h3>Luxury vs Everyday Watches: Which One Should You Buy First?</h3>
-      <p>Understand use-cases, style impact, and budget planning before your next purchase.</p>
-      <a class="btn btn-secondary" href="blog-luxury-vs-everyday.html">Read Article</a>
-    </article>
-
-    <article class="blog-card reveal">
-      <p class="meta">March 2026 | Styling</p>
-      <h3>How to Match Watches With Shades, Belts, and Jewelry</h3>
-      <p>Simple pairing rules to keep your accessories coordinated for premium outfits.</p>
-      <a class="btn btn-secondary" href="blog-accessory-style.html">Read Article</a>
-    </article>
-
-    <article class="blog-card reveal">
-      <p class="meta">March 2026 | Fragrance</p>
-      <h3>Perfume Guide: Daytime vs Evening Scents</h3>
-      <p>Choose long-lasting fragrances that fit workdays, events, and gifting moments.</p>
-      <a class="btn btn-secondary" href="blog-perfume-guide.html">Read Article</a>
-    </article>
-  </div>
-</section>
-<section class="section" style="padding-top:0.6rem;">
-      <div class="container">
-        <div class="cta-banner reveal">
-          <div>
-            <h2 class="section-title" style="margin-bottom:0.4rem; color:#fff;">Need Help Selecting Products?</h2>
-            <p>Contact Glamtreasure for personalized suggestions on watches and accessories.</p>
-          </div>
-          <a class="btn btn-primary" href="contact.html">Talk to Expert</a>
+      <div class="container cart-layout">
+        <div class="cart-panel">
+          <h3>Items</h3>
+          <p class="empty-note" data-cart-empty>Your cart is empty. Browse the shop to add items.</p>
+          <div class="cart-items" data-cart-items></div>
         </div>
+
+        <aside class="cart-summary">
+          <h3>Order Summary</h3>
+          <div class="summary-row">
+            <span>Subtotal</span>
+            <strong data-cart-subtotal>Rs. 0</strong>
+          </div>
+          <div class="summary-row">
+            <span>Shipping</span>
+            <strong data-cart-shipping>Free</strong>
+          </div>
+          <div class="summary-total">
+            <span>Total</span>
+            <strong data-cart-total>Rs. 0</strong>
+          </div>
+          <div class="summary-row" style="margin-top:1rem;">
+            <span>Delivery Address</span>
+          </div>
+          <select class="address-select" data-address-select>
+            <option value="">Select address</option>
+          </select>
+          <p class="small" data-address-note>Login to choose a saved address.</p>
+          <div class="notice" style="margin: 0.8rem 0;">
+            <strong>Payment:</strong> Cash on Delivery (COD) available. Online transactions adding soon.
+          </div>
+          <p class="small" data-cart-status></p>
+          <a class="btn btn-primary" href="#" data-cart-checkout>Checkout on WhatsApp</a>
+          <p class="small" style="margin-top:0.8rem;">Free shipping above Rs. 5000. COD token policy applies.</p>
+        </aside>
       </div>
     </section>
   </main>
 
-      <footer class="site-footer">
+  <footer class="site-footer">
     <div class="container footer-grid">
       <div>
         <h3>Glamtreasure</h3>
@@ -155,7 +151,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/config.js"></script>
   <script src="assets/js/store.js"></script>
-  <script src="assets/js/data.js"></script>
+  <script src="assets/js/cart.js"></script>
   <script src="assets/js/main.js"></script>
 </body>
 </html>

@@ -354,9 +354,14 @@ onReady(() => {
     productCards.forEach((card) => {
       const cardTag = (card.getAttribute("data-category") || "").toLowerCase();
       const cardStyle = (card.getAttribute("data-style") || "").toLowerCase();
+      const cardTags = (card.getAttribute("data-tags") || "").toLowerCase().split(",").filter(Boolean);
       const text = (card.textContent || "").toLowerCase();
       const matchesCategory =
-        !finalTarget || finalTarget === "all" || cardTag === finalTarget || cardStyle === finalTarget;
+        !finalTarget ||
+        finalTarget === "all" ||
+        cardTag === finalTarget ||
+        cardStyle === finalTarget ||
+        cardTags.includes(finalTarget);
       const matchesQuery = !currentQuery || text.includes(currentQuery);
       card.classList.toggle("hidden", !(matchesCategory && matchesQuery));
     });
@@ -377,6 +382,9 @@ onReady(() => {
   const categoryParam = new URLSearchParams(window.location.search).get("category");
   if (categoryParam && filterButtons.length > 0) {
     applyFilter(categoryParam);
+  }
+  if (!categoryParam && filterButtons.length > 0) {
+    applyFilter("all");
   }
 
   const searchParam = new URLSearchParams(window.location.search).get("q");
@@ -802,6 +810,63 @@ onReady(() => {
   if (desc) desc.textContent = watch.desc;
   if (stock) stock.textContent = watch.stock;
   document.title = `${watch.name}${itemLabel} | Glamtreasure`;
+
+  const metaDesc = document.querySelector('meta[name="description"]');
+  if (metaDesc) metaDesc.setAttribute("content", watch.desc || watch.subtitle || "Premium product from Glamtreasure.");
+  const ogTitle = document.querySelector('meta[property="og:title"]');
+  if (ogTitle) ogTitle.setAttribute("content", `${watch.name}${itemLabel} | Glamtreasure`);
+  const ogDesc = document.querySelector('meta[property="og:description"]');
+  if (ogDesc) ogDesc.setAttribute("content", watch.desc || watch.subtitle || "Premium product from Glamtreasure.");
+  const ogUrl = document.querySelector('meta[property="og:url"]');
+  const canonical = document.querySelector('link[rel="canonical"]');
+  const param = encodeURIComponent(watchParam);
+  const newUrl = `https://glamtreasure.shop/product-royal-crown-gold.html?watch=${param}`;
+  if (ogUrl) ogUrl.setAttribute("content", newUrl);
+  if (canonical) canonical.setAttribute("href", newUrl);
+  const ogImage = document.querySelector('meta[property="og:image"]');
+  if (ogImage && watch.images && watch.images[0]) ogImage.setAttribute("content", watch.images[0]);
+
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": watch.name,
+    "image": watch.images || [],
+    "description": watch.desc,
+    "sku": watchParam,
+    "brand": { "@type": "Brand", "name": "Glamtreasure" },
+    "offers": {
+      "@type": "Offer",
+      "priceCurrency": "INR",
+      "price": String((watch.price || "").replace(/[^\d]/g, "")),
+      "availability": (watch.stock || "").toLowerCase().includes("out")
+        ? "https://schema.org/OutOfStock"
+        : "https://schema.org/InStock",
+      "url": newUrl
+    }
+  };
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://glamtreasure.shop/" },
+      { "@type": "ListItem", "position": 2, "name": "Shop", "item": "https://glamtreasure.shop/shop.html" },
+      { "@type": "ListItem", "position": 3, "name": watch.name, "item": newUrl }
+    ]
+  };
+
+  const upsertSchema = (id, data) => {
+    let el = document.querySelector(`#${id}`);
+    if (!el) {
+      el = document.createElement("script");
+      el.type = "application/ld+json";
+      el.id = id;
+      document.head.appendChild(el);
+    }
+    el.textContent = JSON.stringify(data);
+  };
+  upsertSchema("product-schema", schema);
+  upsertSchema("breadcrumb-schema", breadcrumbSchema);
 
   const specsList = document.querySelector("[data-product-specs]");
   if (specsList) {

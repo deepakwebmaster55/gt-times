@@ -6,6 +6,10 @@ window.GT_CONFIG = {
   supabase2: {
     url: "https://hjqgyofytwzssbnodces.supabase.co",
     anonKey: "sb_publishable_DvhtBtDLDG_PvvEc0J8NOg_ZOzQQCMq"
+  },
+  supabase3: {
+    url: "https://ipiratzvtshdkcgalzju.supabase.co",
+    anonKey: "sb_publishable_z-fZhuxCvfZs3-0eJJhyKw_7uzzoAdG"
   }
 };
 

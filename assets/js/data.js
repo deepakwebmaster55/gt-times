@@ -131,6 +131,7 @@ window.GT_DATA_READY = (async () => {
 
   const setEmptyNote = (targetEl, label) => {
     if (!targetEl) return;
+    if (targetEl.dataset.hasContent === "true") return;
     targetEl.innerHTML = "";
     const parent = targetEl.parentElement || targetEl;
     if (!parent) return;
@@ -149,6 +150,7 @@ window.GT_DATA_READY = (async () => {
     if (!targetEl) return;
     const parent = targetEl.parentElement || targetEl;
     if (!parent) return;
+    targetEl.dataset.hasContent = "true";
     const key = String(label || "items");
     const note = parent.querySelector('.empty-note[data-empty="' + key + '"]');
     if (note) note.remove();
@@ -189,7 +191,11 @@ window.GT_DATA_READY = (async () => {
   };
 
   const fetchCategories = async () => {
-    const { data } = await supabase1.from("categories").select("*").neq("is_active", false);
+    const { data, error } = await supabase1.from("categories").select("*").neq("is_active", false);
+    if (error) {
+      const fallback = await supabase1.from("categories").select("*");
+      return fallback.data || [];
+    }
     return data || [];
   };
 
@@ -240,6 +246,24 @@ window.GT_DATA_READY = (async () => {
     return value ? [value] : [];
   };
 
+  const normalizeCategoryList = (value) => {
+    if (Array.isArray(value)) return value.map(String);
+    if (typeof value === "string") {
+      return value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+    return [];
+  };
+
+  const slugify = (text) =>
+    (text || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .trim()
+      .replace(/\s+/g, "-");
+
   const mapProductCard = (product) => {
     const image = normalizeImages(product.images)[0] || "";
     const price = product.price ? `Rs. ${Number(product.price).toLocaleString()}` : "";
@@ -264,13 +288,24 @@ window.GT_DATA_READY = (async () => {
     `;
   };
 
-  const mapShopCard = (product) => {
+  const mapShopCard = (product, categoryMap = {}) => {
     const image = normalizeImages(product.images)[0] || "";
     const price = product.price ? `Rs. ${Number(product.price).toLocaleString()}` : "";
     const oldPrice = product.old_price ? `Rs. ${Number(product.old_price).toLocaleString()}` : "";
     const slugOrId = product.slug || product.id || "";
+    const categories = normalizeCategoryList(product.category);
+    const tagSet = new Set();
+    categories.forEach((cat) => {
+      const raw = String(cat || "");
+      const rawSlug = slugify(raw);
+      if (rawSlug) tagSet.add(rawSlug);
+      const mapped = categoryMap[raw.toLowerCase()];
+      if (mapped) tagSet.add(mapped);
+    });
+    const tagList = Array.from(tagSet);
+    const categorySlug = tagList[0] || "";
     return `
-      <article class="product-card reveal" data-category="${product.category || ""}">
+      <article class="product-card reveal" data-category="${categorySlug}" data-tags="${tagList.join(",")}">
         <div class="product-thumb">
           <span class="product-tag">${product.badge || "Product"}</span>
           <img src="${image}" alt="${product.title || "Product"}" />
@@ -397,7 +432,14 @@ window.GT_DATA_READY = (async () => {
   }
 
   if (productsGrid && products.length) {
-    productsGrid.innerHTML = products.map(mapShopCard).join("");
+    const categories = await fetchCategories();
+    const categoryMap = (categories || []).reduce((acc, cat) => {
+      const name = (cat.name || cat.slug || "").toString().trim().toLowerCase();
+      const slug = slugify(cat.slug || cat.name || "");
+      if (name && slug) acc[name] = slug;
+      return acc;
+    }, {});
+    productsGrid.innerHTML = products.map((product) => mapShopCard(product, categoryMap)).join("");
     clearEmptyNote(productsGrid, "products");
   } else if (productsGrid) {
     setEmptyNote(productsGrid, "products");
@@ -414,6 +456,7 @@ window.GT_DATA_READY = (async () => {
     const list = categories.length ? [baseCategory, ...categories] : [baseCategory];
     if (list.length) {
       categoriesGrid.innerHTML = list.map(mapCategoryCard).join("");
+      categoriesGrid.dataset.hasContent = "true";
       clearEmptyNote(categoriesGrid, "categories");
     } else {
       setEmptyNote(categoriesGrid, "categories");
