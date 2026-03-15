@@ -112,7 +112,7 @@
   };
 
   const addToCartDb = async (session, item) => {
-    const { data: existing } = await client
+    const { data: existing, error: existingError } = await client
       .from("cart_items")
       .select("id, quantity")
       .eq("user_id", session.user.id)
@@ -120,17 +120,21 @@
       .eq("options_key", item.options_key || "")
       .maybeSingle();
 
+    if (existingError) {
+      return { error: existingError };
+    }
+
     if (existing && existing.id) {
-      const { data } = await client
+      const { data, error } = await client
         .from("cart_items")
         .update({ quantity: Number(existing.quantity || 0) + Number(item.quantity || 1) })
         .eq("id", existing.id)
         .select()
         .maybeSingle();
-      return data;
+      return { data, error };
     }
 
-    const { data } = await client
+    const { data, error } = await client
       .from("cart_items")
       .insert({
         user_id: session.user.id,
@@ -144,7 +148,7 @@
       })
       .select()
       .maybeSingle();
-    return data;
+    return { data, error };
   };
 
   const addToCart = async (item) => {
@@ -160,10 +164,17 @@
 
     const session = await getSession();
     if (session && client) {
-      await addToCartDb(session, normalized);
+      const { error } = await addToCartDb(session, normalized);
+      if (error) {
+        console.warn("Cart insert failed, falling back to local cart.", error);
+        addToCartLocal(normalized);
+        return { ok: false, error };
+      }
       await loadCart();
+      return { ok: true };
     } else {
       addToCartLocal(normalized);
+      return { ok: true };
     }
   };
 

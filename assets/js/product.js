@@ -44,7 +44,11 @@
 
   const handleAdd = async () => {
     if (!window.GTStore) return;
-    await window.GTStore.addToCart(buildItem());
+    const result = await window.GTStore.addToCart(buildItem());
+    if (result?.error) {
+      setStatus("Saved locally. Login cart sync will retry.", true);
+      return;
+    }
     setStatus("Added to cart. View cart to checkout.", false);
   };
 
@@ -57,7 +61,11 @@
       window.location.href = "login.html";
       return;
     }
-    await window.GTStore.addToCart(buildItem());
+    const result = await window.GTStore.addToCart(buildItem());
+    if (result?.error) {
+      setStatus("Cart sync failed. Please try again.", true);
+      return;
+    }
     window.location.href = "checkout.html";
   };
 
