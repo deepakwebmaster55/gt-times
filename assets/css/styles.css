@@ -2814,6 +2814,11 @@ textarea {
   margin-right: 0.55rem;
 }
 
+.link-inline {
+  color: var(--accent);
+  font-weight: 600;
+}
+
 @media (max-width: 900px) {
   .cart-layout {
     grid-template-columns: 1fr;

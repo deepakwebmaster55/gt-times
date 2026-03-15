@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cart | Glamtreasure</title>
-  <meta name="description" content="Review your Glamtreasure cart and place your order." />
+  <title>Checkout | Glamtreasure</title>
+  <meta name="description" content="Checkout with COD. Online payments coming soon." />
   <meta name="robots" content="index, follow" />
-  <link rel="canonical" href="https://glamtreasure.shop/cart.html" />
-  <meta property="og:title" content="Glamtreasure Cart" />
-  <meta property="og:description" content="Review items, update quantities, and checkout." />
-  <meta property="og:url" content="https://glamtreasure.shop/cart.html" />
+  <link rel="canonical" href="https://glamtreasure.shop/checkout.html" />
+  <meta property="og:title" content="Glamtreasure Checkout" />
+  <meta property="og:description" content="Complete your order with Cash on Delivery." />
+  <meta property="og:url" content="https://glamtreasure.shop/checkout.html" />
   <meta property="og:image" content="https://glamtreasure.shop/assets/images/logo.svg" />
   <link rel="stylesheet" href="assets/css/styles.css" />
 </head>
 <body>
   <div class="top-strip">
     <div class="container">
-      <p>Review your cart and checkout with confidence.</p>
+      <p>Checkout with COD. Online transactions adding soon.</p>
       <div class="top-links">
         <a href="tel:+917495098330">+91 7495098330</a>
         <a href="mailto:glamtreasure03@gmail.com">glamtreasure03@gmail.com</a>
@@ -48,51 +48,46 @@
   <main>
     <section class="page-hero">
       <div class="container page-hero-card reveal">
-        <p class="breadcrumb">Home / Cart</p>
-        <h1 class="section-title" style="margin-bottom:0.6rem;">Your Cart</h1>
-        <p class="section-subtitle">Update quantities, review totals, and checkout.</p>
+        <p class="breadcrumb">Home / Checkout</p>
+        <h1 class="section-title" style="margin-bottom:0.6rem;">Checkout</h1>
+        <p class="section-subtitle">Cash on Delivery available. Online transactions adding soon.</p>
       </div>
     </section>
 
     <section class="section" style="padding-top:1.5rem;">
       <div class="container cart-layout">
         <div class="cart-panel">
-          <h3>Items</h3>
-          <p class="empty-note" data-cart-empty>Your cart is empty. Browse the shop to add items.</p>
-          <div class="cart-items" data-cart-items></div>
+          <h3>Order Items</h3>
+          <p class="empty-note" data-checkout-empty>Your cart is empty. Browse the shop to add items.</p>
+          <div class="cart-items" data-checkout-items></div>
         </div>
 
         <aside class="cart-summary">
           <h3>Order Summary</h3>
           <div class="summary-row">
             <span>Subtotal</span>
-            <strong data-cart-subtotal>Rs. 0</strong>
+            <strong data-checkout-subtotal>Rs. 0</strong>
           </div>
           <div class="summary-row">
             <span>Shipping</span>
-            <strong data-cart-shipping>Free</strong>
+            <strong data-checkout-shipping>Free</strong>
           </div>
           <div class="summary-total">
             <span>Total</span>
-            <strong data-cart-total>Rs. 0</strong>
+            <strong data-checkout-total>Rs. 0</strong>
           </div>
           <div class="summary-row" style="margin-top:1rem;">
             <span>Delivery Address</span>
           </div>
-          <select class="address-select" data-address-select>
+          <select class="address-select" data-checkout-address>
             <option value="">Select address</option>
           </select>
-          <p class="small" data-address-note>Login to choose a saved address.</p>
-          <div class="notice" data-login-prompt style="display:none; margin-bottom:0.8rem;">
-            Please login to place your order. <a class="link-inline" href="login.html">Login</a> or
-            <a class="link-inline" href="signup.html">Sign up</a>.
-          </div>
+          <p class="small" data-checkout-address-note>Login to choose a saved address.</p>
           <div class="notice" style="margin: 0.8rem 0;">
-            <strong>Payment:</strong> Cash on Delivery (COD) available. Online transactions adding soon.
+            <strong>Payment:</strong> COD available. Online transactions adding soon.
           </div>
-          <p class="small" data-cart-status></p>
-          <a class="btn btn-primary" href="#" data-cart-checkout>Proceed to Checkout</a>
-          <p class="small" style="margin-top:0.8rem;">Free shipping above Rs. 5000. COD token policy applies.</p>
+          <p class="small" data-checkout-status></p>
+          <a class="btn btn-primary" href="#" data-place-order>Place COD Order</a>
         </aside>
       </div>
     </section>
@@ -155,8 +150,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/config.js"></script>
   <script src="assets/js/store.js"></script>
-  <script src="assets/js/cart.js"></script>
+  <script src="assets/js/checkout.js"></script>
   <script src="assets/js/main.js"></script>
 </body>
 </html>
-

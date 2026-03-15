@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cart | Glamtreasure</title>
-  <meta name="description" content="Review your Glamtreasure cart and place your order." />
+  <title>Login | Glamtreasure</title>
+  <meta name="description" content="Login to Glamtreasure to access your cart and bookings." />
   <meta name="robots" content="index, follow" />
-  <link rel="canonical" href="https://glamtreasure.shop/cart.html" />
-  <meta property="og:title" content="Glamtreasure Cart" />
-  <meta property="og:description" content="Review items, update quantities, and checkout." />
-  <meta property="og:url" content="https://glamtreasure.shop/cart.html" />
+  <link rel="canonical" href="https://glamtreasure.shop/login.html" />
+  <meta property="og:title" content="Glamtreasure Login" />
+  <meta property="og:description" content="Sign in to manage your account and orders." />
+  <meta property="og:url" content="https://glamtreasure.shop/login.html" />
   <meta property="og:image" content="https://glamtreasure.shop/assets/images/logo.svg" />
   <link rel="stylesheet" href="assets/css/styles.css" />
 </head>
 <body>
   <div class="top-strip">
     <div class="container">
-      <p>Review your cart and checkout with confidence.</p>
+      <p>Welcome back. Login to continue.</p>
       <div class="top-links">
         <a href="tel:+917495098330">+91 7495098330</a>
         <a href="mailto:glamtreasure03@gmail.com">glamtreasure03@gmail.com</a>
@@ -48,52 +48,35 @@
   <main>
     <section class="page-hero">
       <div class="container page-hero-card reveal">
-        <p class="breadcrumb">Home / Cart</p>
-        <h1 class="section-title" style="margin-bottom:0.6rem;">Your Cart</h1>
-        <p class="section-subtitle">Update quantities, review totals, and checkout.</p>
+        <p class="breadcrumb">Home / Login</p>
+        <h1 class="section-title" style="margin-bottom:0.6rem;">Sign In</h1>
+        <p class="section-subtitle">Access your saved cart and order history.</p>
       </div>
     </section>
 
-    <section class="section" style="padding-top:1.5rem;">
-      <div class="container cart-layout">
-        <div class="cart-panel">
-          <h3>Items</h3>
-          <p class="empty-note" data-cart-empty>Your cart is empty. Browse the shop to add items.</p>
-          <div class="cart-items" data-cart-items></div>
+    <section class="section section-tight">
+      <div class="container" style="max-width:520px;">
+        <p class="form-status" data-login-status></p>
+        <div class="account-card reveal">
+          <form class="form-grid" data-login-form>
+            <div>
+              <label for="login-email">Email</label>
+              <input id="login-email" name="email" type="email" placeholder="you@email.com" required />
+            </div>
+            <div>
+              <label for="login-password">Password</label>
+              <input id="login-password" name="password" type="password" placeholder="Your password" required />
+            </div>
+            <button class="btn btn-primary" type="submit">Sign In</button>
+          </form>
+          <div class="social-auth">
+            <button class="btn btn-outline" type="button" data-google-login>
+              <span class="google-icon" aria-hidden="true">G</span>
+              Continue with Google
+            </button>
+          </div>
+          <p class="small" style="margin-top:1rem;">Don&apos;t have an account? <a class="link-inline" href="signup.html">Sign up</a></p>
         </div>
-
-        <aside class="cart-summary">
-          <h3>Order Summary</h3>
-          <div class="summary-row">
-            <span>Subtotal</span>
-            <strong data-cart-subtotal>Rs. 0</strong>
-          </div>
-          <div class="summary-row">
-            <span>Shipping</span>
-            <strong data-cart-shipping>Free</strong>
-          </div>
-          <div class="summary-total">
-            <span>Total</span>
-            <strong data-cart-total>Rs. 0</strong>
-          </div>
-          <div class="summary-row" style="margin-top:1rem;">
-            <span>Delivery Address</span>
-          </div>
-          <select class="address-select" data-address-select>
-            <option value="">Select address</option>
-          </select>
-          <p class="small" data-address-note>Login to choose a saved address.</p>
-          <div class="notice" data-login-prompt style="display:none; margin-bottom:0.8rem;">
-            Please login to place your order. <a class="link-inline" href="login.html">Login</a> or
-            <a class="link-inline" href="signup.html">Sign up</a>.
-          </div>
-          <div class="notice" style="margin: 0.8rem 0;">
-            <strong>Payment:</strong> Cash on Delivery (COD) available. Online transactions adding soon.
-          </div>
-          <p class="small" data-cart-status></p>
-          <a class="btn btn-primary" href="#" data-cart-checkout>Proceed to Checkout</a>
-          <p class="small" style="margin-top:0.8rem;">Free shipping above Rs. 5000. COD token policy applies.</p>
-        </aside>
       </div>
     </section>
   </main>
@@ -155,8 +138,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/config.js"></script>
   <script src="assets/js/store.js"></script>
-  <script src="assets/js/cart.js"></script>
+  <script src="assets/js/login.js"></script>
   <script src="assets/js/main.js"></script>
 </body>
 </html>
-

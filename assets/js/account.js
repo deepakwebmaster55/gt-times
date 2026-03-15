@@ -184,96 +184,6 @@
     renderPayments(payments || []);
   };
 
-  const getRedirectPath = () => {
-    const path = window.location.pathname || "/";
-    if (path.endsWith("/account.html")) {
-      return path.replace(/account\.html$/, "");
-    }
-    if (path.endsWith("/")) return path;
-    return path.replace(/[^/]+$/, "");
-  };
-
-  const initAuthForms = () => {
-    const loginForm = document.querySelector("[data-login-form]");
-    const signupForm = document.querySelector("[data-signup-form]");
-    const logoutBtn = document.querySelector("[data-logout]");
-    const googleBtn = document.querySelector("[data-google-login]");
-
-    if (loginForm) {
-      loginForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const client = requireClient();
-        if (!client) return;
-        const email = loginForm.querySelector("[name=\"email\"]").value.trim();
-        const password = loginForm.querySelector("[name=\"password\"]").value;
-        const { data, error } = await client.auth.signInWithPassword({ email, password });
-        if (error) {
-          setStatus(error.message, true);
-          return;
-        }
-        if (data?.session) {
-          await ensureProfile(client, data.session);
-        }
-      });
-    }
-
-    if (signupForm) {
-      signupForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const client = requireClient();
-        if (!client) return;
-        const email = signupForm.querySelector("[name=\"email\"]").value.trim();
-        const password = signupForm.querySelector("[name=\"password\"]").value;
-        const fullName = signupForm.querySelector("[name=\"full_name\"]").value.trim();
-        const phone = signupForm.querySelector("[name=\"phone\"]").value.trim();
-        const { data, error } = await client.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: fullName,
-              phone
-            }
-          }
-        });
-        if (error) {
-          setStatus(error.message, true);
-          return;
-        }
-        if (data?.session) {
-          await ensureProfile(client, data.session, { full_name: fullName, phone, email });
-          setStatus("Account created and logged in.", false);
-          return;
-        }
-        setStatus("Check your email to confirm your account.", false);
-      });
-    }
-
-    if (googleBtn) {
-      googleBtn.addEventListener("click", async () => {
-        const client = requireClient();
-        if (!client) return;
-        const base = getRedirectPath();
-        const redirectTo = `${window.location.origin}${base}account.html`;
-        const { error } = await client.auth.signInWithOAuth({
-          provider: "google",
-          options: { redirectTo }
-        });
-        if (error) {
-          setStatus(error.message, true);
-        }
-      });
-    }
-
-    if (logoutBtn) {
-      logoutBtn.addEventListener("click", async () => {
-        const client = requireClient();
-        if (!client) return;
-        await client.auth.signOut();
-      });
-    }
-  };
-
   const initProfileForm = () => {
     const profileForm = document.querySelector("[data-profile-form]");
     if (!profileForm) return;
@@ -331,7 +241,6 @@
 
   const boot = async () => {
     const client = getClient();
-    initAuthForms();
     initProfileForm();
     initAddressForm();
 
@@ -344,6 +253,7 @@
       await loadHistory();
     } else {
       toggleSections(false);
+      setStatus("You are not logged in.", true);
     }
 
     if (client) {
@@ -356,6 +266,7 @@
           await loadHistory();
         } else {
           toggleSections(false);
+          setStatus("You are not logged in.", true);
         }
       });
     }

@@ -1,6 +1,7 @@
-(() => {
+﻿(() => {
   const addBtn = document.querySelector("[data-add-to-cart]");
   const statusEl = document.querySelector("[data-cart-status]");
+  const buyNow = document.querySelector("[data-product-buy-link]");
 
   const parsePrice = (value) => {
     const num = Number(String(value || "").replace(/[^0-9.]/g, ""));
@@ -14,8 +15,7 @@
     statusEl.classList.toggle("is-success", !isError);
   };
 
-  const handleAdd = async () => {
-    if (!window.GTStore) return;
+  const buildItem = () => {
     const title = document.querySelector("[data-product-name]")?.textContent?.trim() || "Product";
     const price = parsePrice(document.querySelector("[data-product-price]")?.textContent);
     const image = document.querySelector("#main-product-image")?.getAttribute("src") || "";
@@ -32,19 +32,40 @@
       color: color || undefined
     };
 
-    await window.GTStore.addToCart({
+    return {
       product_id: productId,
       title,
       price,
       image_url: image,
       quantity: qty,
       options
-    });
+    };
+  };
 
+  const handleAdd = async () => {
+    if (!window.GTStore) return;
+    await window.GTStore.addToCart(buildItem());
     setStatus("Added to cart. View cart to checkout.", false);
+  };
+
+  const handleBuyNow = async (event) => {
+    event.preventDefault();
+    if (!window.GTStore) return;
+    const session = await window.GTStore.getSession();
+    if (!session) {
+      setStatus("Please login to continue.", true);
+      window.location.href = "login.html";
+      return;
+    }
+    await window.GTStore.addToCart(buildItem());
+    window.location.href = "checkout.html";
   };
 
   if (addBtn) {
     addBtn.addEventListener("click", handleAdd);
+  }
+
+  if (buyNow) {
+    buyNow.addEventListener("click", handleBuyNow);
   }
 })();
