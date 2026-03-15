@@ -2,7 +2,16 @@
   const config = window.GT_CONFIG || {};
   const supabaseConfig = config.supabase3 || {};
   const hasSupabase = !!(window.supabase && supabaseConfig.url && supabaseConfig.anonKey);
-  const client = hasSupabase ? window.supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey) : null;
+  const client = hasSupabase
+    ? window.supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          storage: window.localStorage
+        }
+      })
+    : null;
   const localKey = "gt_cart";
 
   const readLocalCart = () => {
