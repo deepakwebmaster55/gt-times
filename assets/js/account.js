@@ -123,7 +123,15 @@
     if (!client) return;
     const session = await window.GTStore.getSession();
     if (!session) return;
-    const { data } = await client.from("addresses").select("*").eq("user_id", session.user.id).order("created_at", { ascending: true });
+    const { data, error } = await client
+      .from("addresses")
+      .select("*")
+      .eq("user_id", session.user.id)
+      .order("created_at", { ascending: true });
+    if (error) {
+      setStatus(error.message, true);
+      return;
+    }
     renderAddresses(data || []);
   };
 
@@ -233,7 +241,11 @@
       if (payload.is_default) {
         await client.from("addresses").update({ is_default: false }).eq("user_id", session.user.id);
       }
-      await client.from("addresses").insert(payload);
+      const { error } = await client.from("addresses").insert(payload);
+      if (error) {
+        setStatus(error.message, true);
+        return;
+      }
       addressForm.reset();
       await loadAddresses();
     });
