@@ -44,7 +44,8 @@ body.page-bg::before {
 }
 
 body.page-bg::after {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.58);
+  backdrop-filter: blur(2px);
   z-index: 1;
 }
 
@@ -63,38 +64,11 @@ body.page-bg footer {
 }
 
 /* Text highlight for readability on background pages */
-body.page-bg .section-title,
-body.page-bg .section-subtitle,
-body.page-bg .breadcrumb,
-body.page-bg .empty-note,
-body.page-bg .section-intro,
-body.page-bg .page-hero-card p {
-  display: inline-block;
-  padding: 0.35rem 0.7rem;
-  background: #1f4ea8;
-  color: #ffffff;
-  border-radius: 999px;
-  box-shadow: 0 10px 24px rgba(15, 31, 62, 0.12);
-}
-
-body.page-bg .section-title {
-  padding: 0.45rem 0.9rem;
-}
-
-body.page-bg .section-subtitle {
-  border-radius: 14px;
-}
-
-body.page-bg .section-title,
-body.page-bg .section-subtitle,
-body.page-bg .breadcrumb,
-body.page-bg .empty-note {
-  backdrop-filter: none;
-}
 
 @media (max-width: 880px) {
   body.page-bg::after {
-    background: transparent;
+    background: rgba(255, 255, 255, 0.62);
+    backdrop-filter: blur(2px);
   }
   body.page-bg::before {
     background-image: image-set(
@@ -2281,7 +2255,7 @@ textarea {
   align-items: center;
   gap: 0.4rem;
   background: var(--surface-soft);
-  border: 1px solid var(--border);
+  border: 1px solid var(--primary);
   border-radius: 999px;
   padding: 0.25rem 0.5rem;
 }
@@ -2319,7 +2293,7 @@ textarea {
 }
 
 .shop-search-form input {
-  border: 1px solid var(--border);
+  border: 1px solid var(--primary);
   background: #fff;
   border-radius: 999px;
   padding: 0.45rem 0.9rem;
