@@ -177,6 +177,23 @@
       currency: "INR"
     });
 
+    try {
+      const supabaseUrl = window.GT_CONFIG?.supabase3?.url || "";
+      const notifyUrl = supabaseUrl ? `${supabaseUrl}/functions/v1/admin-push` : "";
+      if (notifyUrl) {
+        await fetch(notifyUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({ action: "notify", booking_id: booking.id })
+        });
+      }
+    } catch (error) {
+      // Notification failures should not block checkout.
+    }
+
     await window.GTStore.client.from("cart_items").delete().eq("user_id", session.user.id);
     localStorage.removeItem("gt_cart");
     setStatus(`Order placed. Booking ${orderNumber} saved as COD.`, false);
