@@ -909,9 +909,6 @@ onReady(() => {
     sizeSelect.innerHTML = "<option>Small</option><option>Medium</option><option>Large</option>";
   }
 
-  if (buyLink) {
-    buyLink.removeAttribute("href");
-  }
 
   if (mainImage && watch.images && watch.images.length > 0) {
     mainImage.src = watch.images[0];
