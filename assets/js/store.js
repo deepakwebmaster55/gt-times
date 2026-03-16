@@ -61,18 +61,29 @@
   };
 
   const loadCartFromDb = async (session) => {
-    const { data } = await client
+    const { data, error } = await client
       .from("cart_items")
       .select("id, product_id, title, price, image_url, quantity, options, options_key")
       .eq("user_id", session.user.id)
       .order("created_at", { ascending: true });
-    return data || [];
+    return { data: data || [], error };
   };
 
   const loadCart = async () => {
     const session = await getSession();
     if (session && client) {
-      const items = await loadCartFromDb(session);
+      const localFallback = readLocalCart();
+      const { data: items, error } = await loadCartFromDb(session);
+      if (error) {
+        updateHeaderCount(sumCount(localFallback));
+        return localFallback;
+      }
+      if (!items.length && localFallback.length) {
+        updateHeaderCount(sumCount(localFallback));
+        // Try to merge local cart silently.
+        mergeLocalToDb(session);
+        return localFallback;
+      }
       const localItems = items.map((item) => ({
         local_id: item.id,
         product_id: item.product_id,
@@ -178,11 +189,13 @@
     }
   };
 
+  const isLocalKey = (value) => String(value || "").startsWith("local_");
+
   const updateCartItem = async (idOrKey, changes) => {
     const session = await getSession();
     const updates = { quantity: Math.max(1, Number(changes.quantity || 1)) };
 
-    if (session && client) {
+    if (session && client && !isLocalKey(idOrKey)) {
       await client.from("cart_items").update(updates).eq("id", idOrKey);
       await loadCart();
       return;
@@ -199,7 +212,7 @@
 
   const removeCartItem = async (idOrKey) => {
     const session = await getSession();
-    if (session && client) {
+    if (session && client && !isLocalKey(idOrKey)) {
       await client.from("cart_items").delete().eq("id", idOrKey);
       await loadCart();
       return;

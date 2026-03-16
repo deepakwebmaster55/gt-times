@@ -336,8 +336,15 @@ onReady(() => {
   let currentFilter = "all";
   let currentQuery = "";
 
+  const normalizeFilterValue = (value) =>
+    (value || "all")
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .trim()
+      .replace(/\s+/g, "-");
+
   const applyFilter = (target) => {
-    const normalized = (target || "all").toLowerCase();
+    const normalized = normalizeFilterValue(target || "all");
     const map = {
       sports: "sport",
       handbags: "handbags",
@@ -381,7 +388,7 @@ onReady(() => {
 
   const categoryParam = new URLSearchParams(window.location.search).get("category");
   if (categoryParam && filterButtons.length > 0) {
-    applyFilter(categoryParam);
+    applyFilter(normalizeFilterValue(categoryParam));
   }
   if (!categoryParam && filterButtons.length > 0) {
     applyFilter("all");
@@ -903,8 +910,7 @@ onReady(() => {
   }
 
   if (buyLink) {
-    const msg = encodeURIComponent(`I want to buy ${watch.name} from Glamtreasure.`);
-    buyLink.href = `https://wa.me/917495098330?text=${msg}`;
+    buyLink.removeAttribute("href");
   }
 
   if (mainImage && watch.images && watch.images.length > 0) {
