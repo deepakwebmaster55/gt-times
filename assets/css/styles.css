@@ -17,6 +17,104 @@
   --radius-sm: 10px;
 }
 
+/* Page background layer (home + category pages only) */
+body.page-bg {
+  position: relative;
+  background-color: #f7f8fb;
+}
+
+body.page-bg::before,
+body.page-bg::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+body.page-bg::before {
+  background-image: image-set(
+    url("https://fpveczcpjwqkpgvqeapc.supabase.co/storage/v1/object/public/product-images/products/product/1773656491662_1773652713242.webp") type("image/webp")
+  );
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  z-index: 0;
+}
+
+body.page-bg::after {
+  background: transparent;
+  z-index: 1;
+}
+
+body.page-bg.page-bg-ready::before,
+body.page-bg.page-bg-ready::after {
+  opacity: 1;
+}
+
+body.page-bg .announcement-bar,
+body.page-bg .top-strip,
+body.page-bg .site-header,
+body.page-bg main,
+body.page-bg footer {
+  position: relative;
+  z-index: 2;
+}
+
+/* Text highlight for readability on background pages */
+body.page-bg .section-title,
+body.page-bg .section-subtitle,
+body.page-bg .breadcrumb,
+body.page-bg .empty-note,
+body.page-bg .section-intro,
+body.page-bg .page-hero-card p {
+  display: inline-block;
+  padding: 0.35rem 0.7rem;
+  background: #1f4ea8;
+  color: #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 10px 24px rgba(15, 31, 62, 0.12);
+}
+
+body.page-bg .section-title {
+  padding: 0.45rem 0.9rem;
+}
+
+body.page-bg .section-subtitle {
+  border-radius: 14px;
+}
+
+body.page-bg .section-title,
+body.page-bg .section-subtitle,
+body.page-bg .breadcrumb,
+body.page-bg .empty-note {
+  backdrop-filter: none;
+}
+
+@media (max-width: 880px) {
+  body.page-bg::after {
+    background: transparent;
+  }
+  body.page-bg::before {
+    background-image: image-set(
+      url("https://fpveczcpjwqkpgvqeapc.supabase.co/storage/v1/object/public/product-images/products/product/1773655124896_ChatGPT_Image_Mar_16__2026__03_26_05_PM.webp") type("image/webp")
+    );
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+  }
+}
+
+@media (max-width: 880px) {
+  .main-nav {
+    z-index: 120;
+  }
+  .main-nav.is-open {
+    z-index: 120;
+  }
+}
+
 * {
   box-sizing: border-box;
 }

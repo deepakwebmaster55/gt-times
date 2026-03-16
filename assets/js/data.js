@@ -451,7 +451,7 @@ window.GT_DATA_READY = (async () => {
       name: "All Products",
       slug: "all",
       description: "Explore every watch and accessory in one place.",
-      image_url: "https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?auto=compress&cs=tinysrgb&w=1200"
+      image_url: "https://fpveczcpjwqkpgvqeapc.supabase.co/storage/v1/object/public/product-images/categories/category/1773649478801_all2.jfif"
     };
     const list = categories.length ? [baseCategory, ...categories] : [baseCategory];
     if (list.length) {

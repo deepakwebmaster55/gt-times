@@ -17,6 +17,11 @@ const onReady = (fn) => {
 document.documentElement.classList.add("js-ready");
 onReady(() => {
   document.documentElement.classList.add("js");
+  if (document.body && document.body.hasAttribute("data-page-bg")) {
+    requestAnimationFrame(() => {
+      document.body.classList.add("page-bg-ready");
+    });
+  }
   const slugify = (text) =>
     (text || "")
       .toLowerCase()
@@ -126,20 +131,20 @@ onReady(() => {
         <span class="ticker-item">Free shipping above Rs. 5000</span>
         <span class="ticker-item">Call: +91 74950 98330</span>
         <span class="ticker-item">glamtreasure03@gmail.com</span>
-        <span class="ticker-item">JavaScript</span>
-        <span class="ticker-item">HTML5</span>
-        <span class="ticker-item">CSS3</span>
-        <span class="ticker-item">MongoDB</span>
+        <span class="ticker-item">Limited edition drops weekly</span>
+        <span class="ticker-item">Gift-ready packaging available</span>
+        <span class="ticker-item">Trusted COD support</span>
+        <span class="ticker-item">Premium everyday essentials</span>
       </span>
       <span class="ticker-track" aria-hidden="true">
         <span class="ticker-item">COD available with non-refundable token amount</span>
         <span class="ticker-item">Free shipping above Rs. 5000</span>
         <span class="ticker-item">Call: +91 74950 98330</span>
         <span class="ticker-item">glamtreasure03@gmail.com</span>
-        <span class="ticker-item">JavaScript</span>
-        <span class="ticker-item">HTML5</span>
-        <span class="ticker-item">CSS3</span>
-        <span class="ticker-item">MongoDB</span>
+        <span class="ticker-item">Limited edition drops weekly</span>
+        <span class="ticker-item">Gift-ready packaging available</span>
+        <span class="ticker-item">Trusted COD support</span>
+        <span class="ticker-item">Premium everyday essentials</span>
       </span>
     `;
     container.appendChild(link);
