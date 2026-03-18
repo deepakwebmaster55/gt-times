@@ -149,9 +149,11 @@ window.GT_DATA_READY = (async () => {
     if (!el) {
       el = document.createElement("meta");
       if (selector.startsWith('meta[name="')) {
-        el.setAttribute("name", selector.match(/meta\\[name="([^"]+)"/)?.[1] || "");
+        const name = selector.slice(11, -2);
+        el.setAttribute("name", name);
       } else if (selector.startsWith('meta[property="')) {
-        el.setAttribute("property", selector.match(/meta\\[property="([^"]+)"/)?.[1] || "");
+        const property = selector.slice(15, -2);
+        el.setAttribute("property", property);
       }
       document.head.appendChild(el);
     }

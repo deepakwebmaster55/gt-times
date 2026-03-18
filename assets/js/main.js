@@ -108,6 +108,8 @@ onReady(() => {
 
     const addEmptyNote = (target, label) => {
       if (!target) return;
+      if (target.dataset.hasContent === "true") return;
+      if (target.children.length > 0) return;
       const parent = target.parentElement || target;
       if (!parent) return;
       const key = String(label || "items");
@@ -121,16 +123,36 @@ onReady(() => {
       note.textContent = "No " + key + " yet. We will add soon.";
     };
 
-    addEmptyNote(heroTrack, "slides");
+    const removeEmptyNote = (target, label) => {
+      if (!target) return;
+      const parent = target.parentElement || target;
+      if (!parent) return;
+      const key = String(label || "items");
+      const note = parent.querySelector('.empty-note[data-empty="' + key + '"]');
+      if (note) note.remove();
+    };
+
+    removeEmptyNote(heroTrack, "slides");
     carousels.forEach((carousel) => {
       const track = carousel.querySelector(".carousel-track");
-      addEmptyNote(track, "products");
+      removeEmptyNote(track, "products");
     });
-    addEmptyNote(productsGrid, "products");
-    addEmptyNote(categoriesGrid, "categories");
-    addEmptyNote(filterWrap, "categories");
-    addEmptyNote(blogGrid, "blogs");
-    addEmptyNote(reviewList, "reviews");
+    removeEmptyNote(productsGrid, "products");
+    removeEmptyNote(categoriesGrid, "categories");
+    removeEmptyNote(filterWrap, "categories");
+    removeEmptyNote(blogGrid, "blogs");
+    removeEmptyNote(reviewList, "reviews");
+
+    if (heroTrack && !heroTrack.children.length) addEmptyNote(heroTrack, "slides");
+    carousels.forEach((carousel) => {
+      const track = carousel.querySelector(".carousel-track");
+      if (track && !track.children.length) addEmptyNote(track, "products");
+    });
+    if (productsGrid && !productsGrid.children.length) addEmptyNote(productsGrid, "products");
+    if (categoriesGrid && !categoriesGrid.children.length) addEmptyNote(categoriesGrid, "categories");
+    if (filterWrap && !filterWrap.children.length) addEmptyNote(filterWrap, "categories");
+    if (blogGrid && !blogGrid.children.length) addEmptyNote(blogGrid, "blogs");
+    if (reviewList && !reviewList.children.length) addEmptyNote(reviewList, "reviews");
   };
 
   setTimeout(ensureSkeletonFallbacks, 500);
