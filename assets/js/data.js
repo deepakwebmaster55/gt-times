@@ -574,6 +574,7 @@ window.GT_DATA_READY = (async () => {
   if (offers.length) {
     window.GT_ANNOUNCEMENTS = offers.map((offer) => offer.title || offer.description || "Offer");
   }
+  window.GT_OFFERS = offers;
 
   finishLoading();
   const productPage = document.querySelector("[data-product-page]");

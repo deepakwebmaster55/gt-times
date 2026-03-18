@@ -163,14 +163,50 @@ onReady(() => {
       .trim()
       .replace(/\s+/g, "-");
 
+  const updateMobileNavPosition = () => {
+    const header = document.querySelector(".site-header");
+    const navEl = document.querySelector(".main-nav");
+    if (!header || !navEl || !window.matchMedia("(max-width: 880px)").matches) return;
+    const headerRect = header.getBoundingClientRect();
+    const topValue = Math.max(12, Math.round(headerRect.bottom + 8));
+    document.documentElement.style.setProperty("--mobile-nav-top", `${topValue}px`);
+    navEl.style.top = `${topValue}px`;
+  };
+
+  const setMobileMenuState = (isOpen) => {
+    if (!nav || !menuToggle) return;
+    nav.classList.toggle("is-open", isOpen);
+    menuToggle.setAttribute("aria-expanded", String(isOpen));
+    document.body.classList.toggle("menu-open", isOpen);
+  };
+
     const menuToggle = document.querySelector(".menu-toggle");
   const nav = document.querySelector(".main-nav");
 
   if (menuToggle && nav) {
+    updateMobileNavPosition();
     menuToggle.addEventListener("click", () => {
-      const isOpen = nav.classList.toggle("is-open");
-      menuToggle.setAttribute("aria-expanded", String(isOpen));
+      if (window.matchMedia("(max-width: 880px)").matches) {
+        window.location.href = "mobile-menu.html";
+        return;
+      }
+      updateMobileNavPosition();
+      setMobileMenuState(!nav.classList.contains("is-open"));
     });
+    nav.addEventListener("click", (event) => {
+      if (!nav.classList.contains("is-open")) return;
+      const navList = nav.querySelector("ul");
+      if (navList && navList.contains(event.target)) return;
+      setMobileMenuState(false);
+    });
+    nav.querySelectorAll("a").forEach((link) => {
+      link.addEventListener("click", () => setMobileMenuState(false));
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") setMobileMenuState(false);
+    });
+    window.addEventListener("resize", updateMobileNavPosition);
+    window.addEventListener("scroll", updateMobileNavPosition, { passive: true });
   }
 
   const moveAccountToMenu = () => {
@@ -312,6 +348,7 @@ onReady(() => {
       headerActions.classList.add("stacked");
       header.appendChild(headerActions);
     }
+    updateMobileNavPosition();
   };
 
   const setupWhatsAppBubble = () => {
