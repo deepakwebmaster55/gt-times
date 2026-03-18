@@ -40,6 +40,14 @@
     window.location.href = target;
   };
 
+  const boot = async () => {
+    if (!window.GTStore?.getSession) return;
+    const session = await window.GTStore.getSession();
+    if (session) {
+      redirectAfterAuth();
+    }
+  };
+
   if (loginForm) {
     loginForm.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -74,4 +82,6 @@
       }
     });
   }
+
+  boot();
 })();

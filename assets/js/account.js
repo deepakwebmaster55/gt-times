@@ -49,6 +49,22 @@
     return true;
   };
 
+  const initLogout = () => {
+    const logoutBtn = document.querySelector("[data-logout]");
+    if (!logoutBtn) return;
+    logoutBtn.addEventListener("click", async () => {
+      const client = requireClient();
+      if (!client) return;
+      const { error } = await client.auth.signOut();
+      if (error) {
+        setStatus(error.message, true);
+        return;
+      }
+      setStatus("Logged out successfully.", false);
+      window.location.href = "login.html";
+    });
+  };
+
   const fillProfile = (profile, session) => {
     const nameInput = document.querySelector("#profile-name");
     const phoneInput = document.querySelector("#profile-phone");
@@ -272,6 +288,7 @@
     const client = getClient();
     initProfileForm();
     initAddressForm();
+    initLogout();
 
     const session = await window.GTStore.getSession();
     if (session && client) {

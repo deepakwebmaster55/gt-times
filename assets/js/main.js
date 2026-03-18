@@ -22,6 +22,118 @@ onReady(() => {
       document.body.classList.add("page-bg-ready");
     });
   }
+  const ensureSkeletonFallbacks = () => {
+    const heroTrack = document.querySelector("[data-slider-track]");
+    if (heroTrack && !heroTrack.querySelector(".hero-slide")) {
+      heroTrack.innerHTML = `
+        <article class="hero-slide is-active">
+          <div class="hero-copy">
+            <div class="skeleton-line" style="width:120px; margin-bottom:0.8rem;"></div>
+            <div class="skeleton-line" style="width:60%; height:22px; margin-bottom:0.6rem;"></div>
+            <div class="skeleton-line" style="width:80%;"></div>
+          </div>
+          <div class="hero-media">
+            <div class="skeleton-block" style="height:300px;"></div>
+          </div>
+        </article>
+      `;
+    }
+
+    const skeletonCard = `
+      <article class="product-card carousel-card">
+        <div class="product-thumb"><div class="skeleton-block" style="height:190px;"></div></div>
+        <div class="product-content">
+          <div class="skeleton-line" style="width:70%; margin-bottom:0.6rem;"></div>
+          <div class="skeleton-line" style="width:40%;"></div>
+        </div>
+      </article>
+    `;
+
+    const carousels = Array.from(document.querySelectorAll("[data-carousel-key]"));
+    carousels.forEach((carousel) => {
+      const track = carousel.querySelector(".carousel-track");
+      if (track && !track.children.length) {
+        track.innerHTML = Array.from({ length: 4 }).map(() => skeletonCard).join("");
+      }
+    });
+
+    const productsGrid = document.querySelector("[data-products-grid]");
+    if (productsGrid && !productsGrid.children.length) {
+      productsGrid.innerHTML = Array.from({ length: 8 }).map(() => `
+        <article class="product-card">
+          <div class="product-thumb"><div class="skeleton-block" style="height:190px;"></div></div>
+          <div class="product-content">
+            <div class="skeleton-line" style="width:70%; margin-bottom:0.6rem;"></div>
+            <div class="skeleton-line" style="width:40%;"></div>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    const categoriesGrid = document.querySelector("[data-categories-grid]");
+    if (categoriesGrid && !categoriesGrid.children.length) {
+      categoriesGrid.innerHTML = Array.from({ length: 6 }).map(() => `
+        <article class="category-tile">
+          <div class="skeleton-block" style="height:170px; margin-bottom:0.8rem;"></div>
+          <div class="skeleton-line" style="width:60%;"></div>
+        </article>
+      `).join("");
+    }
+
+    const blogGrid = document.querySelector("[data-blog-grid]");
+    if (blogGrid && !blogGrid.children.length) {
+      blogGrid.innerHTML = Array.from({ length: 3 }).map(() => `
+        <article class="blog-card">
+          <div class="skeleton-block" style="height:200px; margin-bottom:0.8rem;"></div>
+          <div class="skeleton-line" style="width:70%; margin-bottom:0.4rem;"></div>
+          <div class="skeleton-line" style="width:50%;"></div>
+        </article>
+      `).join("");
+    }
+
+    const reviewList = document.querySelector("[data-reviews-list]");
+    if (reviewList && !reviewList.children.length) {
+      reviewList.innerHTML = Array.from({ length: 3 }).map(() => `
+        <div class="review-item">
+          <div class="skeleton-line" style="width:60%; margin-bottom:0.4rem;"></div>
+          <div class="skeleton-line" style="width:80%;"></div>
+        </div>
+      `).join("");
+    }
+
+    const filterWrap = document.querySelector("[data-filter-buttons]");
+    if (filterWrap && !filterWrap.children.length) {
+      filterWrap.innerHTML = Array.from({ length: 6 }).map(() => `<span class="filter-skeleton"></span>`).join("");
+    }
+
+    const addEmptyNote = (target, label) => {
+      if (!target) return;
+      const parent = target.parentElement || target;
+      if (!parent) return;
+      const key = String(label || "items");
+      let note = parent.querySelector('.empty-note[data-empty="' + key + '"]');
+      if (!note) {
+        note = document.createElement("p");
+        note.className = "empty-note";
+        note.dataset.empty = key;
+        parent.appendChild(note);
+      }
+      note.textContent = "No " + key + " yet. We will add soon.";
+    };
+
+    addEmptyNote(heroTrack, "slides");
+    carousels.forEach((carousel) => {
+      const track = carousel.querySelector(".carousel-track");
+      addEmptyNote(track, "products");
+    });
+    addEmptyNote(productsGrid, "products");
+    addEmptyNote(categoriesGrid, "categories");
+    addEmptyNote(filterWrap, "categories");
+    addEmptyNote(blogGrid, "blogs");
+    addEmptyNote(reviewList, "reviews");
+  };
+
+  setTimeout(ensureSkeletonFallbacks, 500);
   const slugify = (text) =>
     (text || "")
       .toLowerCase()
@@ -399,8 +511,10 @@ onReady(() => {
     applyFilter("all");
   }
 
+  const pathName = (window.location.pathname || "").toLowerCase();
   const searchParam = new URLSearchParams(window.location.search).get("q");
   const isShopPage = !!document.querySelector(".shop-tools");
+  const isSearchPage = pathName.endsWith("/search.html") || pathName.endsWith("search.html");
   if (searchParam && isShopPage) {
     applySearch(searchParam);
   }
@@ -415,8 +529,13 @@ onReady(() => {
       event.preventDefault();
       const input = form.querySelector("[data-search-input]");
       const query = input ? input.value.trim() : "";
-      if (!isShopPage) {
-        const target = query ? `shop.html?q=${encodeURIComponent(query)}` : "shop.html";
+      if (!isShopPage && !isSearchPage) {
+        const target = query ? `search.html?q=${encodeURIComponent(query)}` : "search.html";
+        window.location.href = target;
+        return;
+      }
+      if (isSearchPage) {
+        const target = query ? `search.html?q=${encodeURIComponent(query)}` : "search.html";
         window.location.href = target;
         return;
       }
@@ -537,11 +656,14 @@ onReady(() => {  const showcases = document.querySelectorAll("[data-watch-showca
 
   if (!watches.length) {
     showcases.forEach((showcase) => {
-      showcase.innerHTML = "";
-      const note = document.createElement("p");
-      note.className = "empty-note";
+      showcase.classList.add("is-skeleton");
+      let note = showcase.querySelector(".empty-note");
+      if (!note) {
+        note = document.createElement("p");
+        note.className = "empty-note";
+        showcase.appendChild(note);
+      }
       note.textContent = "No signature products yet. We will add soon.";
-      showcase.appendChild(note);
     });
     return;
   }

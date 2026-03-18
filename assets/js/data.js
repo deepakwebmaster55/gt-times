@@ -117,22 +117,9 @@ window.GT_DATA_READY = (async () => {
 
   renderSkeletons();
 
-  if (!window.supabase || !supabase1Config.url || !supabase1Config.anonKey) {
-    return;
-  }
-
-  const supabase1 = supabase.createClient(supabase1Config.url, supabase1Config.anonKey);
-  const supabase2 = supabase2Config.url && supabase2Config.anonKey
-    ? supabase.createClient(supabase2Config.url, supabase2Config.anonKey)
-    : null;
-
-  window.GT_SUPABASE1 = supabase1;
-  window.GT_SUPABASE2 = supabase2;
-
   const setEmptyNote = (targetEl, label) => {
     if (!targetEl) return;
     if (targetEl.dataset.hasContent === "true") return;
-    targetEl.innerHTML = "";
     const parent = targetEl.parentElement || targetEl;
     if (!parent) return;
     const key = String(label || "items");
@@ -155,6 +142,68 @@ window.GT_DATA_READY = (async () => {
     const note = parent.querySelector('.empty-note[data-empty="' + key + '"]');
     if (note) note.remove();
   };
+
+  const setMetaTag = (selector, attr, value) => {
+    if (!value) return;
+    let el = document.querySelector(selector);
+    if (!el) {
+      el = document.createElement("meta");
+      if (selector.startsWith('meta[name="')) {
+        el.setAttribute("name", selector.match(/meta\\[name="([^"]+)"/)?.[1] || "");
+      } else if (selector.startsWith('meta[property="')) {
+        el.setAttribute("property", selector.match(/meta\\[property="([^"]+)"/)?.[1] || "");
+      }
+      document.head.appendChild(el);
+    }
+    el.setAttribute(attr, value);
+  };
+
+  const setCanonical = (href) => {
+    if (!href) return;
+    let link = document.querySelector('link[rel="canonical"]');
+    if (!link) {
+      link = document.createElement("link");
+      link.setAttribute("rel", "canonical");
+      document.head.appendChild(link);
+    }
+    link.setAttribute("href", href);
+  };
+
+  const upsertJsonLd = (id, json) => {
+    if (!json) return;
+    let script = document.getElementById(id);
+    if (!script) {
+      script = document.createElement("script");
+      script.type = "application/ld+json";
+      script.id = id;
+      document.head.appendChild(script);
+    }
+    script.textContent = JSON.stringify(json);
+  };
+
+  if (!window.supabase || !supabase1Config.url || !supabase1Config.anonKey) {
+    if (heroTrack) setEmptyNote(heroTrack, "slides");
+    carouselEls.forEach((carousel) => {
+      const track = carousel.querySelector(".carousel-track");
+      if (track) setEmptyNote(track, "products");
+    });
+    if (productsGrid) setEmptyNote(productsGrid, "products");
+    if (categoriesGrid) setEmptyNote(categoriesGrid, "categories");
+    if (filterWrap) setEmptyNote(filterWrap, "categories");
+    if (blogGrid) setEmptyNote(blogGrid, "blogs");
+    if (reviewList) setEmptyNote(reviewList, "reviews");
+    return;
+  }
+
+  const supabase1 = supabase.createClient(supabase1Config.url, supabase1Config.anonKey);
+  const supabase2 = supabase2Config.url && supabase2Config.anonKey
+    ? supabase.createClient(supabase2Config.url, supabase2Config.anonKey)
+    : null;
+
+  window.GT_SUPABASE1 = supabase1;
+  window.GT_SUPABASE2 = supabase2;
+
+  
 
   const productPageSkeleton = document.querySelector("[data-product-page]");
   if (productPageSkeleton) {
@@ -394,6 +443,7 @@ window.GT_DATA_READY = (async () => {
   if (carouselEls.length || productsGrid || reviewList) {
     products = await fetchProducts();
   }
+  window.GT_PRODUCTS = products;
 
   if (carouselEls.length) {
     const bySection = (section) => products.filter((product) => (product.home_sections || []).includes(section));
@@ -433,6 +483,7 @@ window.GT_DATA_READY = (async () => {
 
   if (productsGrid && products.length) {
     const categories = await fetchCategories();
+    window.GT_CATEGORIES = categories;
     const categoryMap = (categories || []).reduce((acc, cat) => {
       const name = (cat.name || cat.slug || "").toString().trim().toLowerCase();
       const slug = slugify(cat.slug || cat.name || "");
@@ -447,13 +498,14 @@ window.GT_DATA_READY = (async () => {
 
   if (categoriesGrid) {
     const categories = await fetchCategories();
+    window.GT_CATEGORIES = categories;
     const baseCategory = {
       name: "All Products",
       slug: "all",
       description: "Explore every watch and accessory in one place.",
       image_url: "https://fpveczcpjwqkpgvqeapc.supabase.co/storage/v1/object/public/product-images/categories/category/1773649478801_all2.jfif"
     };
-    const list = categories.length ? [baseCategory, ...categories] : [baseCategory];
+    const list = categories.length ? [baseCategory, ...categories] : [];
     if (list.length) {
       categoriesGrid.innerHTML = list.map(mapCategoryCard).join("");
       categoriesGrid.dataset.hasContent = "true";
@@ -465,6 +517,7 @@ window.GT_DATA_READY = (async () => {
 
   if (filterWrap) {
     const categories = await fetchCategories();
+    window.GT_CATEGORIES = categories;
     if (categories.length) {
       const buttons = [
         { slug: "all", name: "All" },
@@ -485,10 +538,25 @@ window.GT_DATA_READY = (async () => {
 
   if (blogGrid) {
     const blogs = await fetchBlogs();
+    window.GT_BLOGS = blogs;
     if (blogs.length) {
       blogGrid.innerHTML = blogs.map(mapBlogCard).join("");
     }
   }
+
+  if (!window.GT_BLOGS) {
+    window.GT_BLOGS = await fetchBlogs();
+  }
+
+  if (!window.GT_CATEGORIES) {
+    window.GT_CATEGORIES = await fetchCategories();
+  }
+
+  window.GT_SEARCH_DATA = {
+    products: window.GT_PRODUCTS || [],
+    categories: window.GT_CATEGORIES || [],
+    blogs: window.GT_BLOGS || []
+  };
 
   if (reviewList) {
     const reviews = await fetchReviews();
@@ -518,6 +586,33 @@ window.GT_DATA_READY = (async () => {
       }
       if (data) {
         window.GT_PRODUCT_DETAIL = data;
+        const name = data.title || "Product";
+        const desc = data.short_desc || data.description || "Premium watches and accessories from Glamtreasure.";
+        const images = normalizeImages(data.images);
+        const primaryImage = images[0] || "https://glamtreasure.shop/assets/images/logo.svg";
+        const canonicalUrl = window.location.href.split("#")[0];
+        document.title = `${name} | Glamtreasure`;
+        setMetaTag('meta[name="description"]', "content", desc);
+        setMetaTag('meta[property="og:title"]', "content", `${name} | Glamtreasure`);
+        setMetaTag('meta[property="og:description"]', "content", desc);
+        setMetaTag('meta[property="og:image"]', "content", primaryImage);
+        setMetaTag('meta[property="og:url"]', "content", canonicalUrl);
+        setCanonical(canonicalUrl);
+        upsertJsonLd("product-jsonld", {
+          "@context": "https://schema.org",
+          "@type": "Product",
+          "name": name,
+          "image": images.length ? images : [primaryImage],
+          "description": desc,
+          "brand": { "@type": "Brand", "name": "Glamtreasure" },
+          "offers": {
+            "@type": "Offer",
+            "priceCurrency": "INR",
+            "price": data.price ? String(data.price) : undefined,
+            "availability": data.stock === 0 ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
+            "url": canonicalUrl
+          }
+        });
       }
     }
   }

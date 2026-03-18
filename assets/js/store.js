@@ -1,6 +1,32 @@
 (() => {
   const config = window.GT_CONFIG || {};
   const supabaseConfig = config.supabase3 || {};
+  const createMemoryStorage = () => {
+    const memory = {};
+    return {
+      getItem(key) {
+        return Object.prototype.hasOwnProperty.call(memory, key) ? memory[key] : null;
+      },
+      setItem(key, value) {
+        memory[key] = String(value);
+      },
+      removeItem(key) {
+        delete memory[key];
+      }
+    };
+  };
+  const getAuthStorage = () => {
+    try {
+      const testKey = "__gt_auth_test__";
+      window.localStorage.setItem(testKey, "1");
+      window.localStorage.removeItem(testKey);
+      return window.localStorage;
+    } catch (error) {
+      console.warn("Local storage unavailable for auth persistence, using memory fallback.", error);
+      return createMemoryStorage();
+    }
+  };
+  const authStorage = getAuthStorage();
   const hasSupabase = !!(window.supabase && supabaseConfig.url && supabaseConfig.anonKey);
   const client = hasSupabase
     ? window.supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey, {
@@ -8,17 +34,44 @@
           persistSession: true,
           autoRefreshToken: true,
           detectSessionInUrl: true,
-          storage: window.localStorage
+          storage: authStorage
         }
-      })
+  })
     : null;
   const localKey = "gt_cart";
+  let authReadyResolve = () => {};
+  const authReady = new Promise((resolve) => {
+    authReadyResolve = resolve;
+  });
+  let authInitialized = false;
+
+  const clampQty = (value) => {
+    const num = Number(value || 0);
+    if (!Number.isFinite(num)) return 1;
+    return Math.max(1, Math.min(10, Math.round(num)));
+  };
+
+  const normalizeCartItems = (items = []) => {
+    let changed = false;
+    const normalized = items.map((item) => {
+      const next = { ...item };
+      next.quantity = clampQty(item.quantity);
+      if (next.quantity !== item.quantity) changed = true;
+      return next;
+    });
+    return { normalized, changed };
+  };
 
   const readLocalCart = () => {
     try {
       const raw = localStorage.getItem(localKey);
       const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
+      if (!Array.isArray(parsed)) return [];
+      const { normalized, changed } = normalizeCartItems(parsed);
+      if (changed) {
+        writeLocalCart(normalized);
+      }
+      return normalized;
     } catch (error) {
       return [];
     }
@@ -44,7 +97,7 @@
     return stableStringify(normalized);
   };
 
-  const sumCount = (items) => items.reduce((total, item) => total + Number(item.quantity || 0), 0);
+  const sumCount = (items) => items.reduce((total, item) => total + clampQty(item.quantity), 0);
 
   const updateHeaderCount = (count) => {
     const links = Array.from(document.querySelectorAll(".header-actions a"));
@@ -56,6 +109,7 @@
 
   const getSession = async () => {
     if (!client) return null;
+    await authReady;
     const { data } = await client.auth.getSession();
     return data.session || null;
   };
@@ -90,7 +144,7 @@
         title: item.title,
         price: item.price,
         image_url: item.image_url,
-        quantity: item.quantity,
+        quantity: clampQty(item.quantity),
         options: item.options,
         options_key: item.options_key
       }));
@@ -110,7 +164,7 @@
       (existing.options_key || "") === (item.options_key || "")
     );
     if (match) {
-      match.quantity += item.quantity;
+      match.quantity = clampQty(Number(match.quantity || 0) + Number(item.quantity || 1));
     } else {
       items.push({
         ...item,
@@ -168,7 +222,7 @@
       title: item.title || "",
       price: Number(item.price || 0),
       image_url: item.image_url || "",
-      quantity: Math.max(1, Number(item.quantity || 1)),
+      quantity: clampQty(item.quantity),
       options: item.options || {},
       options_key: getOptionsKey(item.options || {})
     };
@@ -193,7 +247,7 @@
 
   const updateCartItem = async (idOrKey, changes) => {
     const session = await getSession();
-    const updates = { quantity: Math.max(1, Number(changes.quantity || 1)) };
+    const updates = { quantity: clampQty(changes.quantity) };
 
     if (session && client && !isLocalKey(idOrKey)) {
       await client.from("cart_items").update(updates).eq("id", idOrKey);
@@ -240,6 +294,10 @@
     loadCart();
     if (!client) return;
     client.auth.onAuthStateChange(async (event, session) => {
+      if (!authInitialized) {
+        authInitialized = true;
+        authReadyResolve(session || null);
+      }
       if (event === "SIGNED_IN" && session) {
         await mergeLocalToDb(session);
       }
@@ -249,6 +307,7 @@
 
   window.GTStore = {
     client,
+    authReady,
     getSession,
     loadCart,
     addToCart,

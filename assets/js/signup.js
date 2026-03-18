@@ -40,6 +40,14 @@
     window.location.href = target;
   };
 
+  const boot = async () => {
+    if (!window.GTStore?.getSession) return;
+    const session = await window.GTStore.getSession();
+    if (session) {
+      redirectAfterAuth();
+    }
+  };
+
   const ensureProfile = async (client, session, overrides = {}) => {
     if (!session?.user?.id) return;
     const meta = session?.user?.user_metadata || {};
@@ -100,4 +108,6 @@
       }
     });
   }
+
+  boot();
 })();

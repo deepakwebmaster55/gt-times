@@ -44,9 +44,14 @@
 
   const handleAdd = async () => {
     if (!window.GTStore) return;
+    const session = await window.GTStore.getSession();
     const result = await window.GTStore.addToCart(buildItem());
     if (result?.error) {
       setStatus("Saved locally. Login cart sync will retry.", true);
+      return;
+    }
+    if (!session) {
+      setStatus("Added to cart. Login first to buy this item.", true);
       return;
     }
     setStatus("Added to cart. View cart to checkout.", false);
@@ -62,7 +67,7 @@
     }
     const session = await window.GTStore.getSession();
     if (!session) {
-      setStatus("Please login to continue.", true);
+      setStatus("Please login first to buy this item.", true);
       try {
         const checkoutUrl = new URL("checkout.html", window.location.href).href;
         sessionStorage.setItem("gt_return_to", checkoutUrl);
