@@ -17,14 +17,14 @@
 
   const buildItem = () => {
     const title = document.querySelector("[data-product-name]")?.textContent?.trim() || "Product";
-    const price = parsePrice(document.querySelector("[data-product-price]")?.textContent);
-    const image = document.querySelector("#main-product-image")?.getAttribute("src") || "";
+    const price = Number(window.GT_PRODUCT_DETAIL?.price || 0) || parsePrice(document.querySelector("[data-product-price]")?.textContent);
+    const image = document.querySelector("#main-product-image")?.getAttribute("src") || normalizeImage(window.GT_PRODUCT_DETAIL?.images) || "";
     const qty = Number(document.querySelector("[data-qty-input]")?.value || 1);
     const strap = document.querySelector("#strap-select")?.value || "";
     const size = document.querySelector("#size-select")?.value || "";
     const color = document.querySelector("[data-selected-color]")?.textContent || "";
     const params = new URLSearchParams(window.location.search);
-    const productId = window.GT_PRODUCT_DETAIL?.id || params.get("watch") || title;
+    const productId = window.GT_PRODUCT_DETAIL?.id || window.GT_PRODUCT_DETAIL?.slug || params.get("watch") || title;
 
     const options = {
       strap: strap || undefined,
@@ -41,6 +41,31 @@
       options
     };
   };
+
+  function normalizeImage(value) {
+    if (Array.isArray(value)) return value[0] || "";
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed) return "";
+      if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+        return trimmed
+          .slice(1, -1)
+          .split(",")
+          .map((item) => item.replace(/^\"|\"$/g, "").trim())
+          .filter(Boolean)[0] || "";
+      }
+      if (trimmed.startsWith("[")) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          return Array.isArray(parsed) ? parsed[0] || "" : "";
+        } catch (error) {
+          return trimmed;
+        }
+      }
+      return trimmed;
+    }
+    return "";
+  }
 
   const handleAdd = async () => {
     if (!window.GTStore) return;

@@ -8,6 +8,10 @@
   const addressNote = document.querySelector("[data-checkout-address-note]");
   const placeOrderBtn = document.querySelector("[data-place-order]");
   const statusEl = document.querySelector("[data-checkout-status]");
+  const catalogConfig = window.GT_CONFIG?.supabase1 || {};
+  const catalogClient = window.supabase && catalogConfig.url && catalogConfig.anonKey
+    ? window.supabase.createClient(catalogConfig.url, catalogConfig.anonKey)
+    : null;
 
   const formatPrice = (value) => `Rs. ${Number(value || 0).toLocaleString()}`;
 
@@ -22,6 +26,83 @@
     const shipping = subtotal >= 5000 ? 0 : items.length ? 199 : 0;
     const total = subtotal + shipping;
     return { subtotal, shipping, total };
+  };
+
+  const normalizeImages = (value) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed) return [];
+      if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+        return trimmed
+          .slice(1, -1)
+          .split(",")
+          .map((item) => item.replace(/^\"|\"$/g, "").trim())
+          .filter(Boolean);
+      }
+      if (trimmed.startsWith("[")) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+          return [trimmed];
+        }
+      }
+      return [trimmed];
+    }
+    return value ? [value] : [];
+  };
+
+  const getCanonicalItems = async (items) => {
+    if (!catalogClient || !items.length) return items;
+
+    const productKeys = Array.from(new Set(items.map((item) => String(item.product_id || "").trim()).filter(Boolean)));
+    if (!productKeys.length) return items;
+
+    const [byIdRes, bySlugRes] = await Promise.all([
+      catalogClient.from("products").select("id, slug, title, price, images").in("id", productKeys),
+      catalogClient.from("products").select("id, slug, title, price, images").in("slug", productKeys)
+    ]);
+
+    const lookup = new Map();
+    [...(byIdRes.data || []), ...(bySlugRes.data || [])].forEach((product) => {
+      if (product?.id !== undefined && product?.id !== null) {
+        lookup.set(String(product.id), product);
+      }
+      if (product?.slug) {
+        lookup.set(String(product.slug), product);
+      }
+    });
+
+    const canonicalItems = items.map((item) => {
+      const match = lookup.get(String(item.product_id || "").trim());
+      if (!match) return item;
+      return {
+        ...item,
+        title: match.title || item.title,
+        price: Number(match.price || 0) || Number(item.price || 0),
+        image_url: normalizeImages(match.images)[0] || item.image_url
+      };
+    });
+
+    const session = await window.GTStore.getSession();
+    if (session && window.GTStore?.client) {
+      for (const item of canonicalItems) {
+        if (!item.id) continue;
+        await window.GTStore.client
+          .from("cart_items")
+          .update({
+            title: item.title,
+            price: item.price,
+            image_url: item.image_url
+          })
+          .eq("id", item.id);
+      }
+    } else {
+      localStorage.setItem("gt_cart", JSON.stringify(canonicalItems));
+    }
+
+    return canonicalItems;
   };
 
   const renderItems = (items) => {
@@ -146,7 +227,7 @@
         user_id: session.user.id,
         order_number: orderNumber,
         total_amount: totals.total,
-        status: "cod_pending",
+        status: "order_placed",
         address_id: addressId,
         address_snapshot: address || null
       })
@@ -173,7 +254,7 @@
       booking_id: booking.id,
       transaction_id: `COD-${orderNumber}`,
       amount: totals.total,
-      status: "cod_pending",
+      status: "payment_pending",
       currency: "INR"
     });
 
@@ -203,7 +284,8 @@
   };
 
   const refresh = async () => {
-    const items = await window.GTStore.loadCart();
+    const cartItems = await window.GTStore.loadCart();
+    const items = await getCanonicalItems(cartItems);
     renderItems(items);
     await loadAddresses();
   };
@@ -211,7 +293,8 @@
   if (placeOrderBtn) {
     placeOrderBtn.addEventListener("click", async (event) => {
       event.preventDefault();
-      const items = await window.GTStore.loadCart();
+      const cartItems = await window.GTStore.loadCart();
+      const items = await getCanonicalItems(cartItems);
       if (!items.length) return;
       await createBooking(items);
     });

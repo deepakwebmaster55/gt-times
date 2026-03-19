@@ -192,7 +192,14 @@
     if (existing && existing.id) {
       const { data, error } = await client
         .from("cart_items")
-        .update({ quantity: Number(existing.quantity || 0) + Number(item.quantity || 1) })
+        .update({
+          quantity: Number(existing.quantity || 0) + Number(item.quantity || 1),
+          title: item.title,
+          price: item.price,
+          image_url: item.image_url,
+          options: item.options,
+          options_key: item.options_key || ""
+        })
         .eq("id", existing.id)
         .select()
         .maybeSingle();

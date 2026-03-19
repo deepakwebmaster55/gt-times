@@ -180,10 +180,11 @@
       const item = document.createElement("div");
       item.className = "history-row";
       const date = row.created_at ? new Date(row.created_at).toLocaleDateString() : "";
+      const statusLabel = window.GTTracking?.getOrderLabel(row.status) || row.status || "Pending";
       item.innerHTML = `
         <div>
           <strong>${row.order_number || "Order"}</strong>
-          <p>${date} · ${row.status || ""}</p>
+          <p>${date} · ${statusLabel}</p>
         </div>
         <div class=\"history-amount\">Rs. ${Number(row.total_amount || 0).toLocaleString()}</div>
       `;
@@ -203,10 +204,11 @@
       const item = document.createElement("div");
       item.className = "history-row";
       const date = row.created_at ? new Date(row.created_at).toLocaleDateString() : "";
+      const statusLabel = window.GTTracking?.getPaymentLabel(row.status) || row.status || "Pending";
       item.innerHTML = `
         <div>
           <strong>${row.transaction_id || "Transaction"}</strong>
-          <p>${date} · ${row.status || ""}</p>
+          <p>${date} · ${statusLabel}</p>
         </div>
         <div class=\"history-amount\">Rs. ${Number(row.amount || 0).toLocaleString()}</div>
       `;

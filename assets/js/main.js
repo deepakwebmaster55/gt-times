@@ -756,8 +756,19 @@ onReady(() => {  const showcases = document.querySelectorAll("[data-watch-showca
 
       const images = watch.images || [];
       imageIndex = images.length ? imageIndex % images.length : 0;
-      imgEl.src = images[imageIndex] || "";
-      imgEl.alt = `${watch.name} showcase`;
+      const imageUrl = images[imageIndex];
+      const imgWrap = imgEl?.closest(".showcase-image-wrap");
+      if (imageUrl) {
+        imgEl.src = imageUrl;
+        imgEl.alt = `${watch.name} showcase`;
+        imgEl.classList.remove("is-empty");
+        if (imgWrap) imgWrap.classList.remove("is-empty");
+      } else {
+        imgEl.removeAttribute("src");
+        imgEl.alt = "";
+        imgEl.classList.add("is-empty");
+        if (imgWrap) imgWrap.classList.add("is-empty");
+      }
 
       const colorImages = watch.colorImages || {};
       colorsEl.innerHTML = "";
@@ -775,6 +786,7 @@ onReady(() => {  const showcases = document.querySelectorAll("[data-watch-showca
           const imgUrl = colorImages[color];
           if (imgUrl) {
             imgEl.src = imgUrl;
+            imgEl.classList.remove("is-empty");
           }
         });
         colorsEl.appendChild(btn);
