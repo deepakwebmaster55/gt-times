@@ -8,6 +8,7 @@
   const addressNote = document.querySelector("[data-checkout-address-note]");
   const placeOrderBtn = document.querySelector("[data-place-order]");
   const statusEl = document.querySelector("[data-checkout-status]");
+  let isPlacingOrder = false;
   const catalogConfig = window.GT_CONFIG?.supabase1 || {};
   const catalogClient = window.supabase && catalogConfig.url && catalogConfig.anonKey
     ? window.supabase.createClient(catalogConfig.url, catalogConfig.anonKey)
@@ -189,8 +190,11 @@
   };
 
   const createBooking = async (items) => {
+    if (isPlacingOrder) return;
+    isPlacingOrder = true;
     if (!window.GTStore?.client) {
       setStatus("Supabase 3 keys missing.", true);
+      isPlacingOrder = false;
       return;
     }
     const session = await window.GTStore.getSession();
@@ -202,13 +206,18 @@
         sessionStorage.setItem("gt_return_to", "checkout.html");
       }
       window.location.href = "login.html";
+      isPlacingOrder = false;
       return;
     }
     const hasPhone = await ensurePhone(session);
-    if (!hasPhone) return;
+    if (!hasPhone) {
+      isPlacingOrder = false;
+      return;
+    }
     const addressId = addressSelect?.value || "";
     if (!addressId) {
       setStatus("Please select a delivery address.", true);
+      isPlacingOrder = false;
       return;
     }
 
@@ -236,6 +245,7 @@
 
     if (bookingError || !booking) {
       setStatus(bookingError?.message || "Unable to create booking.", true);
+      isPlacingOrder = false;
       return;
     }
 
@@ -277,10 +287,19 @@
 
     await window.GTStore.client.from("cart_items").delete().eq("user_id", session.user.id);
     localStorage.removeItem("gt_cart");
+    try {
+      sessionStorage.setItem("gt_last_order_success", JSON.stringify({
+        booking_id: booking.id,
+        order_number: orderNumber,
+        created_at: booking.created_at || new Date().toISOString()
+      }));
+    } catch (error) {
+    }
     setStatus(`Order placed. Booking ${orderNumber} saved as COD.`, false);
     setTimeout(() => {
-      window.location.href = "account.html";
-    }, 1200);
+      window.location.href = `order-success.html?booking=${encodeURIComponent(booking.id)}&order=${encodeURIComponent(orderNumber)}`;
+    }, 700);
+    isPlacingOrder = false;
   };
 
   const refresh = async () => {

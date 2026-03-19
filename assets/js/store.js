@@ -34,7 +34,8 @@
           persistSession: true,
           autoRefreshToken: true,
           detectSessionInUrl: true,
-          storage: authStorage
+          storage: authStorage,
+          storageKey: "gt-main-auth"
         }
   })
     : null;
@@ -44,6 +45,11 @@
     authReadyResolve = resolve;
   });
   let authInitialized = false;
+  const resolveAuthReady = (session) => {
+    if (authInitialized) return;
+    authInitialized = true;
+    authReadyResolve(session || null);
+  };
 
   const clampQty = (value) => {
     const num = Number(value || 0);
@@ -300,11 +306,15 @@
   const init = () => {
     loadCart();
     if (!client) return;
+    client.auth.getSession()
+      .then(({ data }) => {
+        resolveAuthReady(data?.session || null);
+      })
+      .catch(() => {
+        resolveAuthReady(null);
+      });
     client.auth.onAuthStateChange(async (event, session) => {
-      if (!authInitialized) {
-        authInitialized = true;
-        authReadyResolve(session || null);
-      }
+      resolveAuthReady(session || null);
       if (event === "SIGNED_IN" && session) {
         await mergeLocalToDb(session);
       }

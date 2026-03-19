@@ -709,12 +709,13 @@ initShopFilters();
 onReady(() => {  const showcases = document.querySelectorAll("[data-watch-showcase]");
   if (showcases.length === 0) return;
 
-  const watches = (window.GT_SHOWCASE_DATA && window.GT_SHOWCASE_DATA.length)
-    ? window.GT_SHOWCASE_DATA
-    : [];
+  showcases.forEach((showcase) => {
+    const source = showcase.getAttribute("data-showcase-source") || "signature_showcase";
+    const watches = (window.GT_SHOWCASE_MAP && window.GT_SHOWCASE_MAP[source] && window.GT_SHOWCASE_MAP[source].length)
+      ? window.GT_SHOWCASE_MAP[source]
+      : ((window.GT_SHOWCASE_DATA && window.GT_SHOWCASE_DATA.length) ? window.GT_SHOWCASE_DATA : []);
 
-  if (!watches.length) {
-    showcases.forEach((showcase) => {
+    if (!watches.length) {
       showcase.classList.add("is-skeleton");
       let note = showcase.querySelector(".empty-note");
       if (!note) {
@@ -723,11 +724,9 @@ onReady(() => {  const showcases = document.querySelectorAll("[data-watch-showca
         showcase.appendChild(note);
       }
       note.textContent = "No signature products yet. We will add soon.";
-    });
-    return;
-  }
+      return;
+    }
 
-  showcases.forEach((showcase) => {
     const nameEl = showcase.querySelector("[data-showcase-name]");
     const typeEl = showcase.querySelector("[data-showcase-type]");
     const tagEl = showcase.querySelector("[data-showcase-tagline]");

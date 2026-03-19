@@ -9,6 +9,7 @@
   const addressNote = document.querySelector("[data-address-note]");
   const statusEl = document.querySelector("[data-cart-status]");
   const loginPrompt = document.querySelector("[data-login-prompt]");
+  let isCheckoutPending = false;
 
   const formatPrice = (value) => `Rs. ${Number(value || 0).toLocaleString()}`;
 
@@ -142,21 +143,31 @@
   };
 
   const handleCheckout = async (items) => {
-    const session = await window.GTStore.getSession();
-    if (!session) {
-      try {
-        const checkoutUrl = new URL("checkout.html", window.location.href).href;
-        sessionStorage.setItem("gt_return_to", checkoutUrl);
-      } catch (error) {
-        sessionStorage.setItem("gt_return_to", "checkout.html");
+    if (isCheckoutPending) return;
+    isCheckoutPending = true;
+    try {
+      const session = await window.GTStore.getSession();
+      if (!session) {
+        try {
+          const checkoutUrl = new URL("checkout.html", window.location.href).href;
+          sessionStorage.setItem("gt_return_to", checkoutUrl);
+        } catch (error) {
+          sessionStorage.setItem("gt_return_to", "checkout.html");
+        }
+        if (loginPrompt) loginPrompt.style.display = "block";
+        setStatus("Login required to continue.", true);
+        window.location.href = "login.html";
+        return;
       }
-      if (loginPrompt) loginPrompt.style.display = "block";
-      setStatus("Login required to continue.", true);
-      return;
+      if (loginPrompt) loginPrompt.style.display = "none";
+      if (!items.length) {
+        setStatus("Your cart is empty.", true);
+        return;
+      }
+      window.location.href = "checkout.html";
+    } finally {
+      isCheckoutPending = false;
     }
-    if (loginPrompt) loginPrompt.style.display = "none";
-    if (!items.length) return;
-    window.location.href = "checkout.html";
   };
 
   const refresh = async () => {

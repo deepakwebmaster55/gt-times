@@ -463,23 +463,27 @@ window.GT_DATA_READY = (async () => {
     });
 
     if (products.length) {
-      const showcaseProducts = bySection("signature_showcase").map((product) => {
-        return {
-          name: product.title || "",
-          type: product.subtitle || "Signature Watch",
-          tagline: product.badge || "Signature",
-          desc: product.description || product.short_desc || "",
-          oldPrice: product.old_price ? `Rs. ${Number(product.old_price).toLocaleString()}` : "",
-          newPrice: product.price ? `Rs. ${Number(product.price).toLocaleString()}` : "",
-          images: product.gallery && product.gallery.length ? product.gallery : normalizeImages(product.images),
-          colors: product.colors && product.colors.length ? product.colors : ["Gold", "Silver", "Blue"],
-          colorImages: product.color_images || {}
-        };
+      const mapShowcaseProduct = (product) => ({
+        name: product.title || "",
+        type: product.subtitle || "Signature Watch",
+        tagline: product.badge || "Signature",
+        desc: product.description || product.short_desc || "",
+        oldPrice: product.old_price ? `Rs. ${Number(product.old_price).toLocaleString()}` : "",
+        newPrice: product.price ? `Rs. ${Number(product.price).toLocaleString()}` : "",
+        images: product.gallery && product.gallery.length ? product.gallery : normalizeImages(product.images),
+        colors: product.colors && product.colors.length ? product.colors : ["Gold", "Silver", "Blue"],
+        colorImages: product.color_images || {}
       });
 
-      if (showcaseProducts.length) {
-        window.GT_SHOWCASE_DATA = showcaseProducts;
-      }
+      const showcaseBySection = {
+        featured: bySection("featured").map(mapShowcaseProduct),
+        signature_showcase: bySection("signature_showcase").map(mapShowcaseProduct)
+      };
+
+      window.GT_SHOWCASE_DATA = showcaseBySection.signature_showcase.length
+        ? showcaseBySection.signature_showcase
+        : showcaseBySection.featured;
+      window.GT_SHOWCASE_MAP = showcaseBySection;
     }
   }
 

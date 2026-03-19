@@ -2,6 +2,7 @@
   const addBtn = document.querySelector("[data-add-to-cart]");
   const statusEl = document.querySelector("[data-cart-status]");
   const buyNow = document.querySelector("[data-product-buy-link]");
+  let isSubmitting = false;
 
   const parsePrice = (value) => {
     const num = Number(String(value || "").replace(/[^0-9.]/g, ""));
@@ -84,25 +85,29 @@
 
   const handleBuyNow = async (event) => {
     event.preventDefault();
-    if (!window.GTStore) return;
-    const result = await window.GTStore.addToCart(buildItem());
-    if (result?.error) {
-      setStatus("Cart sync failed. Please try again.", true);
-      return;
-    }
-    const session = await window.GTStore.getSession();
-    if (!session) {
-      setStatus("Please login first to buy this item.", true);
-      try {
-        const checkoutUrl = new URL("checkout.html", window.location.href).href;
-        sessionStorage.setItem("gt_return_to", checkoutUrl);
-      } catch (error) {
-        sessionStorage.setItem("gt_return_to", "checkout.html");
+    if (!window.GTStore || isSubmitting) return;
+    isSubmitting = true;
+    try {
+      const result = await window.GTStore.addToCart(buildItem());
+      if (result?.error) {
+        setStatus("Cart synced locally. Continuing to checkout.", true);
       }
-      window.location.href = "login.html";
-      return;
+      const session = await window.GTStore.getSession();
+      if (!session) {
+        setStatus("Please login first to buy this item.", true);
+        try {
+          const checkoutUrl = new URL("checkout.html", window.location.href).href;
+          sessionStorage.setItem("gt_return_to", checkoutUrl);
+        } catch (error) {
+          sessionStorage.setItem("gt_return_to", "checkout.html");
+        }
+        window.location.href = "login.html";
+        return;
+      }
+      window.location.href = "checkout.html";
+    } finally {
+      isSubmitting = false;
     }
-    window.location.href = "checkout.html";
   };
 
   if (addBtn) {
