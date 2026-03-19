@@ -11,6 +11,7 @@ window.GT_DATA_READY = (async () => {
   const blogGrid = document.querySelector("[data-blog-grid]");
   const reviewList = document.querySelector("[data-reviews-list]");
   const filterWrap = document.querySelector("[data-filter-buttons]");
+  const searchPage = document.querySelector("[data-search-page]");
   const showcases = Array.from(document.querySelectorAll("[data-watch-showcase]"));
 
   const renderSkeletons = () => {
@@ -237,8 +238,27 @@ window.GT_DATA_READY = (async () => {
   }
 
   const fetchProducts = async () => {
-    const { data } = await supabase1.from("products").select("*").neq("is_active", false);
-    return data || [];
+    const primary = await supabase1
+      .from("products")
+      .select("*")
+      .neq("is_active", false);
+
+    if (!primary.error) {
+      return primary.data || [];
+    }
+
+    console.warn("Primary products query failed, retrying without active filter.", primary.error);
+
+    const fallback = await supabase1
+      .from("products")
+      .select("*");
+
+    if (fallback.error) {
+      console.error("Products fallback query failed.", fallback.error);
+      return [];
+    }
+
+    return (fallback.data || []).filter((product) => product?.is_active !== false);
   };
 
   const fetchCategories = async () => {
@@ -251,7 +271,8 @@ window.GT_DATA_READY = (async () => {
   };
 
   const fetchBlogs = async () => {
-    const { data } = await supabase1.from("blogs").select("*").neq("is_active", false).order("published_at", { ascending: false });
+    if (!supabase2) return [];
+    const { data } = await supabase2.from("blogs").select("*").neq("is_active", false).order("published_at", { ascending: false });
     return data || [];
   };
 
@@ -306,6 +327,55 @@ window.GT_DATA_READY = (async () => {
         .filter(Boolean);
     }
     return [];
+  };
+
+  const normalizeSectionList = (value) => {
+    if (Array.isArray(value)) {
+      return value.map((item) => String(item || "").trim()).filter(Boolean);
+    }
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed) return [];
+      if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+        return trimmed
+          .slice(1, -1)
+          .split(",")
+          .map((item) => item.replace(/^\"|\"$/g, "").trim())
+          .filter(Boolean);
+      }
+      if (trimmed.includes(",")) {
+        return trimmed.split(",").map((item) => item.trim()).filter(Boolean);
+      }
+      return [trimmed];
+    }
+    return [];
+  };
+
+  const normalizeSectionKey = (value) =>
+    String(value || "")
+      .toLowerCase()
+      .trim()
+      .replace(/&/g, "and")
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+
+  const expandSectionAliases = (value) => {
+    const key = normalizeSectionKey(value);
+    const aliases = new Set([key]);
+
+    if (key === "showcase_1") aliases.add("showcase_one");
+    if (key === "showcase_2") aliases.add("showcase_two");
+    if (key === "showcase_one") aliases.add("showcase_1");
+    if (key === "showcase_two") aliases.add("showcase_2");
+    if (key === "new_arrival") aliases.add("new_arrivals");
+    if (key === "best_seller") aliases.add("bestseller");
+    if (key === "best_sellers") aliases.add("bestseller");
+    if (key === "bestseller") aliases.add("bestseller");
+    if (key === "premium") aliases.add("premium_choice");
+    if (key === "premium_products") aliases.add("premium_choice");
+    if (key === "featured_products") aliases.add("featured");
+
+    return aliases;
   };
 
   const slugify = (text) =>
@@ -442,47 +512,70 @@ window.GT_DATA_READY = (async () => {
   }
 
   let products = [];
-  if (carouselEls.length || productsGrid || reviewList) {
+  if (carouselEls.length || productsGrid || reviewList || searchPage) {
     products = await fetchProducts();
   }
   window.GT_PRODUCTS = products;
 
   if (carouselEls.length) {
-    const bySection = (section) => products.filter((product) => (product.home_sections || []).includes(section));
+      const bySection = (section) => {
+      const wanted = expandSectionAliases(section);
+      return products.filter((product) => {
+        const sections = normalizeSectionList(product.home_sections);
+        const normalized = sections.flatMap((item) => Array.from(expandSectionAliases(item)));
+        return normalized.some((item) => wanted.has(item));
+      });
+    };
+    const fallbackBuckets = {
+      featured: products.slice(0, 8),
+      new_arrivals: products.slice(0, 8),
+      bestseller: products.slice(0, 8),
+      premium_choice: products.slice(0, 8),
+      showcase_one: products.slice(0, 6),
+      showcase_two: products.slice(6, 12).length ? products.slice(6, 12) : products.slice(0, 6)
+    };
     carouselEls.forEach((carousel) => {
       const key = carousel.getAttribute("data-carousel-key");
       const track = carousel.querySelector(".carousel-track");
       if (!track) return;
       const items = products.length ? bySection(key) : [];
-      if (items.length) {
-        track.innerHTML = items.map(mapProductCard).join("");
+      const finalItems = items.length ? items : (fallbackBuckets[key] || []);
+      if (finalItems.length) {
+        track.innerHTML = finalItems.map(mapProductCard).join("");
         clearEmptyNote(track, "products");
       } else {
         setEmptyNote(track, "products");
       }
     });
 
-    if (products.length) {
+      if (products.length) {
       const mapShowcaseProduct = (product) => ({
-        name: product.title || "",
-        type: product.subtitle || "Signature Watch",
-        tagline: product.badge || "Signature",
+          id: product.id,
+          name: product.title || "",
+          type: product.subtitle || "Signature Watch",
+          tagline: product.badge || "Signature",
         desc: product.description || product.short_desc || "",
         oldPrice: product.old_price ? `Rs. ${Number(product.old_price).toLocaleString()}` : "",
         newPrice: product.price ? `Rs. ${Number(product.price).toLocaleString()}` : "",
-        images: product.gallery && product.gallery.length ? product.gallery : normalizeImages(product.images),
-        colors: product.colors && product.colors.length ? product.colors : ["Gold", "Silver", "Blue"],
+        images: normalizeImages(product.gallery).length ? normalizeImages(product.gallery) : normalizeImages(product.images),
+        colors: normalizeCategoryList(product.colors).length ? normalizeCategoryList(product.colors) : ["Gold", "Silver", "Blue"],
         colorImages: product.color_images || {}
       });
 
+      const showcaseOneSource = bySection("showcase_one").length ? bySection("showcase_one") : (fallbackBuckets.showcase_one || []);
+      const showcaseOne = showcaseOneSource.map(mapShowcaseProduct);
+      const showcaseOneIds = new Set(showcaseOne.map((item) => item.id));
+      const showcaseTwoSource = bySection("showcase_two").length ? bySection("showcase_two") : (fallbackBuckets.showcase_two || []);
+      const showcaseTwo = showcaseTwoSource
+        .filter((product) => !showcaseOneIds.has(product.id))
+        .map(mapShowcaseProduct);
+
       const showcaseBySection = {
-        featured: bySection("featured").map(mapShowcaseProduct),
-        signature_showcase: bySection("signature_showcase").map(mapShowcaseProduct)
+        showcase_one: showcaseOne,
+        showcase_two: showcaseTwo
       };
 
-      window.GT_SHOWCASE_DATA = showcaseBySection.signature_showcase.length
-        ? showcaseBySection.signature_showcase
-        : showcaseBySection.featured;
+      window.GT_SHOWCASE_DATA = [];
       window.GT_SHOWCASE_MAP = showcaseBySection;
     }
   }
@@ -550,7 +643,7 @@ window.GT_DATA_READY = (async () => {
     }
   }
 
-  if (!window.GT_BLOGS) {
+  if (!window.GT_BLOGS && (blogGrid || searchPage)) {
     window.GT_BLOGS = await fetchBlogs();
   }
 

@@ -46,25 +46,38 @@
     </div>
   </header>
 
-  <main>
+  <main data-search-page>
     <section class="page-hero">
       <div class="container page-hero-card reveal">
         <p class="breadcrumb">Home / Search</p>
-        <h1 class="section-title" style="margin-bottom:0.6rem;">Search The Site</h1>
-        <p class="section-subtitle">Find products, categories, blog posts, and important pages from one place.</p>
+        <h1 class="section-title" style="margin-bottom:0.6rem;">Search Products</h1>
+        <p class="section-subtitle">Use the dedicated search page to find products fast, get live suggestions while typing, and view matching products below on the same page.</p>
       </div>
     </section>
 
     <section class="section section-tight">
       <div class="container">
-        <div class="shop-search reveal" style="justify-content:flex-start; margin-bottom:1rem;">
-          <form class="shop-search-form" data-search-form>
-            <input type="search" name="q" placeholder="Search watches, bags, perfumes, blog posts" data-search-input aria-label="Search the site" />
+        <div class="search-page-shell reveal">
+          <div class="search-page-intro">
+            <span class="search-page-eyebrow">Product Finder</span>
+            <h2>Find the right product before you shop</h2>
+            <p>Search by product name, category, style, badge, or price-related words. Suggestions appear as you type like large ecommerce stores.</p>
+          </div>
+          <form class="shop-search-form search-page-form" data-search-form autocomplete="off">
+            <div class="search-field-wrap">
+              <input type="search" name="q" placeholder="Search watches, bags, perfumes and more" data-search-input data-search-live-input aria-label="Search products" />
+              <div class="search-autocomplete" data-search-suggestions hidden></div>
+            </div>
             <button type="submit">Search</button>
           </form>
+          <div class="search-popular" data-search-popular></div>
         </div>
-        <p class="search-summary" data-search-summary></p>
-        <div class="search-results" data-search-results></div>
+        <div class="search-results-panel">
+          <div class="search-results-head">
+            <p class="search-summary" data-search-summary></p>
+          </div>
+          <div class="product-grid search-product-grid" data-search-results></div>
+        </div>
       </div>
     </section>
   </main>

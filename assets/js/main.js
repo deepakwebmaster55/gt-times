@@ -574,7 +574,7 @@ onReady(() => {
   const searchParam = new URLSearchParams(window.location.search).get("q");
   const isShopPage = !!document.querySelector(".shop-tools");
   const isSearchPage = pathName.endsWith("/search.html") || pathName.endsWith("search.html");
-  if (searchParam && isShopPage) {
+  if (searchParam && isShopPage && !isSearchPage) {
     applySearch(searchParam);
   }
 
@@ -583,31 +583,17 @@ onReady(() => {
   searchInputs.forEach((input) => {
     if (searchParam) input.value = searchParam;
   });
-  searchForms.forEach((form) => {
-    form.addEventListener("submit", (event) => {
-      event.preventDefault();
-      const input = form.querySelector("[data-search-input]");
-      const query = input ? input.value.trim() : "";
-      if (!isShopPage && !isSearchPage) {
+  if (!isSearchPage) {
+    searchForms.forEach((form) => {
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const input = form.querySelector("[data-search-input]");
+        const query = input ? input.value.trim() : "";
         const target = query ? `search.html?q=${encodeURIComponent(query)}` : "search.html";
         window.location.href = target;
-        return;
-      }
-      if (isSearchPage) {
-        const target = query ? `search.html?q=${encodeURIComponent(query)}` : "search.html";
-        window.location.href = target;
-        return;
-      }
-      applySearch(query);
-      const url = new URL(window.location.href);
-      if (query) {
-        url.searchParams.set("q", query);
-      } else {
-        url.searchParams.delete("q");
-      }
-      window.history.replaceState({}, "", url.toString());
+      });
     });
-  });
+  }
 };
 
 window.initShopFilters = initShopFilters;
@@ -710,10 +696,10 @@ onReady(() => {  const showcases = document.querySelectorAll("[data-watch-showca
   if (showcases.length === 0) return;
 
   showcases.forEach((showcase) => {
-    const source = showcase.getAttribute("data-showcase-source") || "signature_showcase";
-    const watches = (window.GT_SHOWCASE_MAP && window.GT_SHOWCASE_MAP[source] && window.GT_SHOWCASE_MAP[source].length)
+    const source = showcase.getAttribute("data-showcase-source") || "showcase_one";
+    const watches = (window.GT_SHOWCASE_MAP && Array.isArray(window.GT_SHOWCASE_MAP[source]))
       ? window.GT_SHOWCASE_MAP[source]
-      : ((window.GT_SHOWCASE_DATA && window.GT_SHOWCASE_DATA.length) ? window.GT_SHOWCASE_DATA : []);
+      : [];
 
     if (!watches.length) {
       showcase.classList.add("is-skeleton");
@@ -723,9 +709,14 @@ onReady(() => {  const showcases = document.querySelectorAll("[data-watch-showca
         note.className = "empty-note";
         showcase.appendChild(note);
       }
-      note.textContent = "No signature products yet. We will add soon.";
+      note.textContent = source === "showcase_two"
+        ? "No products added to Showcase 2 yet."
+        : "No products added to Showcase 1 yet.";
       return;
     }
+    showcase.classList.remove("is-skeleton");
+    const existingNote = showcase.querySelector(".empty-note");
+    if (existingNote) existingNote.remove();
 
     const nameEl = showcase.querySelector("[data-showcase-name]");
     const typeEl = showcase.querySelector("[data-showcase-type]");
@@ -753,7 +744,7 @@ onReady(() => {  const showcases = document.querySelectorAll("[data-watch-showca
       oldEl.textContent = watch.oldPrice;
       newEl.textContent = watch.newPrice;
 
-      const images = watch.images || [];
+      const images = Array.isArray(watch.images) ? watch.images : [];
       imageIndex = images.length ? imageIndex % images.length : 0;
       const imageUrl = images[imageIndex];
       const imgWrap = imgEl?.closest(".showcase-image-wrap");
@@ -769,9 +760,12 @@ onReady(() => {  const showcases = document.querySelectorAll("[data-watch-showca
         if (imgWrap) imgWrap.classList.add("is-empty");
       }
 
-      const colorImages = watch.colorImages || {};
+      const colorImages = watch.colorImages && typeof watch.colorImages === "object" ? watch.colorImages : {};
+      const colors = Array.isArray(watch.colors) && watch.colors.length
+        ? watch.colors
+        : ["Gold", "Silver", "Blue"];
       colorsEl.innerHTML = "";
-      watch.colors.forEach((color, i) => {
+      colors.forEach((color, i) => {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "color-dot" + (i === 0 ? " is-active" : "");
@@ -791,7 +785,7 @@ onReady(() => {  const showcases = document.querySelectorAll("[data-watch-showca
         colorsEl.appendChild(btn);
       });
 
-      selectedColorEl.textContent = watch.colors[0];
+      selectedColorEl.textContent = colors[0];
     }
 
     if (nextBtn) {
@@ -804,7 +798,7 @@ onReady(() => {  const showcases = document.querySelectorAll("[data-watch-showca
 
     if (imgPrevBtn) {
       imgPrevBtn.addEventListener("click", () => {
-        const images = watches[index].images || [];
+        const images = Array.isArray(watches[index].images) ? watches[index].images : [];
         if (!images.length) return;
         imageIndex = (imageIndex - 1 + images.length) % images.length;
         render();
@@ -813,7 +807,7 @@ onReady(() => {  const showcases = document.querySelectorAll("[data-watch-showca
 
     if (imgNextBtn) {
       imgNextBtn.addEventListener("click", () => {
-        const images = watches[index].images || [];
+        const images = Array.isArray(watches[index].images) ? watches[index].images : [];
         if (!images.length) return;
         imageIndex = (imageIndex + 1) % images.length;
         render();

@@ -61,8 +61,8 @@
     if (!productKeys.length) return items;
 
     const [byIdRes, bySlugRes] = await Promise.all([
-      catalogClient.from("products").select("id, slug, title, price, images").in("id", productKeys),
-      catalogClient.from("products").select("id, slug, title, price, images").in("slug", productKeys)
+      catalogClient.from("products").select("id, slug, title, price, images, stock_quantity, is_active").in("id", productKeys),
+      catalogClient.from("products").select("id, slug, title, price, images, stock_quantity, is_active").in("slug", productKeys)
     ]);
 
     const lookup = new Map();
@@ -80,6 +80,9 @@
       if (!match) return item;
       return {
         ...item,
+        _catalog_id: match.id,
+        _stock_quantity: Number(match.stock_quantity || 0),
+        _is_active: match.is_active !== false,
         title: match.title || item.title,
         price: Number(match.price || 0) || Number(item.price || 0),
         image_url: normalizeImages(match.images)[0] || item.image_url
@@ -104,6 +107,44 @@
     }
 
     return canonicalItems;
+  };
+
+  const ensureStockAvailable = (items) => {
+    for (const item of items) {
+      const title = item.title || "Product";
+      const quantity = Number(item.quantity || 0);
+      const stockQuantity = Number(item._stock_quantity || 0);
+      if (item._is_active === false) {
+        setStatus(`${title} is currently inactive and cannot be ordered.`, true);
+        return false;
+      }
+      if (quantity > stockQuantity) {
+        setStatus(`Only ${stockQuantity} unit(s) left for ${title}.`, true);
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const updateCatalogStock = async (items) => {
+    if (!catalogClient) return;
+    const nowIso = new Date().toISOString();
+    for (const item of items) {
+      const catalogId = item._catalog_id || item.product_id;
+      if (!catalogId) continue;
+      const remaining = Math.max(0, Number(item._stock_quantity || 0) - Number(item.quantity || 0));
+      const { error } = await catalogClient
+        .from("products")
+        .update({
+          stock_quantity: remaining,
+          stock_updated_at: nowIso,
+          stock: remaining > 0 ? "In stock" : "Out of stock"
+        })
+        .eq("id", catalogId);
+      if (error) {
+        throw error;
+      }
+    }
   };
 
   const renderItems = (items) => {
@@ -214,6 +255,10 @@
       isPlacingOrder = false;
       return;
     }
+    if (!ensureStockAvailable(items)) {
+      isPlacingOrder = false;
+      return;
+    }
     const addressId = addressSelect?.value || "";
     if (!addressId) {
       setStatus("Please select a delivery address.", true);
@@ -283,6 +328,12 @@
       }
     } catch (error) {
       // Notification failures should not block checkout.
+    }
+
+    try {
+      await updateCatalogStock(items);
+    } catch (error) {
+      setStatus("Order placed, but stock sync failed. Update it from admin stocks.", true);
     }
 
     await window.GTStore.client.from("cart_items").delete().eq("user_id", session.user.id);

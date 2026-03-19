@@ -1,62 +1,13 @@
 (() => {
+  const pageRoot = document.querySelector("[data-search-page]");
   const form = document.querySelector("[data-search-form]");
   const input = document.querySelector("[data-search-input]");
   const summary = document.querySelector("[data-search-summary]");
   const resultsRoot = document.querySelector("[data-search-results]");
+  const suggestionsRoot = document.querySelector("[data-search-suggestions]");
+  const popularRoot = document.querySelector("[data-search-popular]");
 
-  if (!resultsRoot) return;
-
-  const staticPages = [
-    {
-      type: "Page",
-      title: "Home",
-      summary: "Browse featured products, offers, reviews, and signature collections.",
-      url: "index.html",
-      keywords: "home featured products offers reviews collections"
-    },
-    {
-      type: "Page",
-      title: "Shop",
-      summary: "Browse all watches and accessories with category filters.",
-      url: "shop.html",
-      keywords: "shop products watches shades handbags shoes perfumes jewelry belts wallets"
-    },
-    {
-      type: "Page",
-      title: "Categories",
-      summary: "Explore product categories and discover collections faster.",
-      url: "categories.html",
-      keywords: "categories collections watches accessories"
-    },
-    {
-      type: "Page",
-      title: "About",
-      summary: "Read about Glamtreasure, policies, support, and service values.",
-      url: "about.html",
-      keywords: "about company support service trust"
-    },
-    {
-      type: "Page",
-      title: "Contact",
-      summary: "Get support for orders, gifting, and product questions.",
-      url: "contact.html",
-      keywords: "contact support order help phone email"
-    },
-    {
-      type: "Page",
-      title: "Blog",
-      summary: "Read buying guides, style tips, and care advice.",
-      url: "blog.html",
-      keywords: "blog guides style care articles"
-    },
-    {
-      type: "Page",
-      title: "Help Center",
-      summary: "Find store help, common questions, and order guidance.",
-      url: "help-center.html",
-      keywords: "help center faq support guidance"
-    }
-  ];
+  if (!pageRoot || !form || !input || !summary || !resultsRoot) return;
 
   const normalizeImages = (value) => {
     if (Array.isArray(value)) return value;
@@ -93,152 +44,239 @@
 
   const getQuery = () => new URLSearchParams(window.location.search).get("q") || "";
 
+  const updateQuery = (query) => {
+    const url = new URL(window.location.href);
+    if (query) {
+      url.searchParams.set("q", query);
+    } else {
+      url.searchParams.delete("q");
+    }
+    window.history.replaceState({}, "", url.toString());
+  };
+
   const scoreText = (query, haystack) => {
     const source = String(haystack || "").toLowerCase();
     const q = String(query || "").toLowerCase().trim();
     if (!q || !source) return 0;
-    if (source === q) return 120;
-    if (source.startsWith(q)) return 80;
-    if (source.includes(q)) return 50;
+    if (source === q) return 150;
+    if (source.startsWith(q)) return 90;
+    if (source.includes(q)) return 60;
     const parts = q.split(/\s+/).filter(Boolean);
-    if (!parts.length) return 0;
-    return parts.reduce((total, part) => total + (source.includes(part) ? 12 : 0), 0);
+    return parts.reduce((total, part) => total + (source.includes(part) ? 16 : 0), 0);
   };
 
-  const scoreEntry = (query, entry) => {
-    let score = 0;
-    score += scoreText(query, entry.title) * 3;
-    score += scoreText(query, entry.summary) * 2;
-    score += scoreText(query, entry.keywords);
-    return score;
-  };
-
-  const toProductEntry = (product) => {
-    const image = normalizeImages(product.images)[0] || "";
-    return {
-      section: "Products",
-      type: "Product",
-      title: product.title || "Product",
-      summary: product.short_desc || product.description || "",
-      url: `product-royal-crown-gold.html?watch=${encodeURIComponent(product.slug || product.id || "")}`,
-      keywords: [
-        product.badge,
-        product.subtitle,
-        product.category,
-        product.slug,
-        product.price
-      ].join(" "),
-      image
-    };
-  };
-
-  const toCategoryEntry = (category) => ({
-    section: "Categories",
-    type: "Category",
-    title: category.name || "Category",
-    summary: category.description || "",
-    url: `shop.html?category=${encodeURIComponent(category.slug || category.name || "")}`,
-    keywords: [category.slug, category.name].join(" ")
-  });
-
-  const toBlogEntry = (blog) => ({
-    section: "Blog",
-    type: "Article",
-    title: blog.title || "Blog article",
-    summary: blog.summary || "",
-    url: blog.url || `blog-${blog.slug}.html`,
-    keywords: [blog.slug, blog.summary, blog.title].join(" ")
-  });
-
-  const toPageEntry = (page) => ({
-    section: "Pages",
-    type: page.type,
-    title: page.title,
-    summary: page.summary,
-    url: page.url,
-    keywords: page.keywords
-  });
-
-  const renderSection = (title, items) => {
-    if (!items.length) return "";
-    return `
-      <section class="search-section-block">
-        <div class="search-section-head">
-          <h2>${escapeHtml(title)}</h2>
-          <span>${items.length} result${items.length === 1 ? "" : "s"}</span>
-        </div>
-        <div class="search-hit-list">
-          ${items.map((item) => `
-            <article class="search-hit">
-              <span class="search-hit-type">${escapeHtml(item.type)}</span>
-              <h3>${escapeHtml(item.title)}</h3>
-              <p>${escapeHtml(item.summary || "Open this page to view more details.")}</p>
-              <a class="link-inline" href="${escapeHtml(item.url)}">Open result</a>
-            </article>
-          `).join("")}
-        </div>
-      </section>
-    `;
-  };
-
-  const render = async () => {
-    const query = getQuery().trim();
-    if (input) input.value = query;
-
-    if (!query) {
-      if (summary) summary.textContent = "Search products, categories, blog posts, and key pages.";
-      resultsRoot.innerHTML = `<p class="empty-note">Enter a search term to view results.</p>`;
-      return;
+  const flattenValue = (value) => {
+    if (value === null || value === undefined || value === false) return [];
+    if (Array.isArray(value)) {
+      return value.flatMap((item) => flattenValue(item));
     }
+    if (typeof value === "object") {
+      return Object.values(value).flatMap((item) => flattenValue(item));
+    }
+    const text = String(value).trim();
+    return text ? [text] : [];
+  };
 
+  const getProducts = async () => {
     if (window.GT_DATA_READY && typeof window.GT_DATA_READY.then === "function") {
       try {
         await window.GT_DATA_READY;
       } catch (error) {
       }
     }
-
-    const searchData = window.GT_SEARCH_DATA || {};
-    const products = (searchData.products || []).map(toProductEntry);
-    const categories = (searchData.categories || []).map(toCategoryEntry);
-    const blogs = (searchData.blogs || []).map(toBlogEntry);
-    const pages = staticPages.map(toPageEntry);
-
-    const allSections = [
-      { title: "Products", items: products },
-      { title: "Categories", items: categories },
-      { title: "Blog", items: blogs },
-      { title: "Pages", items: pages }
-    ];
-
-    const ranked = allSections.map((section) => {
-      const items = section.items
-        .map((item) => ({ ...item, score: scoreEntry(query, item) }))
-        .filter((item) => item.score > 0)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 8);
-      return { title: section.title, items };
-    });
-
-    const total = ranked.reduce((sum, section) => sum + section.items.length, 0);
-    if (summary) {
-      summary.textContent = total
-        ? `${total} result${total === 1 ? "" : "s"} found for "${query}".`
-        : `No results found for "${query}".`;
-    }
-
-    const html = ranked.map((section) => renderSection(section.title, section.items)).join("");
-    resultsRoot.innerHTML = html || `<p class="empty-note">No matching products, categories, blog posts, or pages were found.</p>`;
+    return (window.GT_SEARCH_DATA && Array.isArray(window.GT_SEARCH_DATA.products))
+      ? window.GT_SEARCH_DATA.products
+      : [];
   };
 
-  if (form) {
-    form.addEventListener("submit", (event) => {
-      event.preventDefault();
-      const value = input ? input.value.trim() : "";
-      const nextUrl = value ? `search.html?q=${encodeURIComponent(value)}` : "search.html";
-      window.location.href = nextUrl;
-    });
-  }
+  const getProductEntry = (product) => {
+    const image = normalizeImages(product.images)[0] || "https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?auto=compress&cs=tinysrgb&w=1200";
+    const slugOrId = product.slug || product.id || "";
+    const category = Array.isArray(product.category) ? product.category.join(", ") : (product.category || "");
+    return {
+      id: product.id || slugOrId,
+      title: product.title || "Product",
+      image,
+      badge: product.badge || "Product",
+      category,
+      price: product.price ? `Rs. ${Number(product.price).toLocaleString()}` : "",
+      oldPrice: product.old_price ? `Rs. ${Number(product.old_price).toLocaleString()}` : "",
+      summary: product.short_desc || product.description || "View this product for more details.",
+      url: `product-royal-crown-gold.html?watch=${encodeURIComponent(slugOrId)}`
+    };
+  };
 
-  render();
+  const scoreProduct = (query, product) => {
+    const primaryScore =
+      scoreText(query, product.title) * 4 +
+      scoreText(query, product.short_desc) * 3 +
+      scoreText(query, product.description) * 3 +
+      scoreText(query, product.category) * 2;
+
+    const allFieldScore = Object.entries(product || {}).reduce((total, [key, value]) => {
+      const weight = key === "title"
+        ? 0
+        : key === "short_desc" || key === "description"
+          ? 0
+          : key === "category"
+            ? 0
+            : 1;
+      if (!weight) return total;
+      return total + flattenValue(value).reduce((sum, field) => sum + scoreText(query, field) * weight, 0);
+    }, 0);
+
+    return primaryScore + allFieldScore;
+  };
+
+  const renderPopular = async () => {
+    if (!popularRoot) return;
+    const products = await getProducts();
+    const terms = Array.from(new Set(
+      products
+        .flatMap((product) => [
+          ...flattenValue(product.category),
+          ...flattenValue(product.badge),
+          ...flattenValue(product.title)
+        ])
+        .filter(Boolean)
+    )).slice(0, 6);
+
+    if (!terms.length) {
+      popularRoot.innerHTML = "";
+      return;
+    }
+
+    popularRoot.innerHTML = `
+      <span>Popular searches:</span>
+      ${terms.map((term) => `<button type="button" class="search-chip" data-search-chip="${escapeHtml(term)}">${escapeHtml(term)}</button>`).join("")}
+    `;
+
+    popularRoot.querySelectorAll("[data-search-chip]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const value = button.getAttribute("data-search-chip") || "";
+        input.value = value;
+        hideSuggestions();
+        renderResults(value);
+      });
+    });
+  };
+
+  const hideSuggestions = () => {
+    if (!suggestionsRoot) return;
+    suggestionsRoot.hidden = true;
+    suggestionsRoot.innerHTML = "";
+  };
+
+  const renderSuggestions = async (query) => {
+    if (!suggestionsRoot) return;
+    const trimmed = String(query || "").trim();
+    if (!trimmed) {
+      hideSuggestions();
+      return;
+    }
+
+    const products = await getProducts();
+    const suggestions = products
+      .map((product) => ({ product, score: scoreProduct(trimmed, product) }))
+      .filter((item) => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 6)
+      .map((item) => getProductEntry(item.product));
+
+    if (!suggestions.length) {
+      hideSuggestions();
+      return;
+    }
+
+    suggestionsRoot.hidden = false;
+    suggestionsRoot.innerHTML = suggestions.map((item) => `
+      <button type="button" class="search-suggestion" data-search-suggestion="${escapeHtml(item.title)}">
+        <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.title)}" />
+        <span class="search-suggestion-copy">
+          <strong>${escapeHtml(item.title)}</strong>
+          <small>${escapeHtml(item.category || item.badge)}</small>
+        </span>
+      </button>
+    `).join("");
+
+    suggestionsRoot.querySelectorAll("[data-search-suggestion]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const value = button.getAttribute("data-search-suggestion") || "";
+        input.value = value;
+        hideSuggestions();
+        renderResults(value);
+      });
+    });
+  };
+
+  const renderResults = async (rawQuery) => {
+    const query = String(rawQuery || "").trim();
+    input.value = query;
+    updateQuery(query);
+
+    const products = await getProducts();
+    if (!query) {
+      summary.textContent = "Start typing to search products. Matching items will appear here.";
+      resultsRoot.innerHTML = `<p class="search-empty-state">Search by product name, category, or collection to see matching products.</p>`;
+      return;
+    }
+
+    const matches = products
+      .map((product) => ({ product, score: scoreProduct(query, product) }))
+      .filter((item) => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map((item) => getProductEntry(item.product));
+
+    summary.textContent = matches.length
+      ? `${matches.length} product${matches.length === 1 ? "" : "s"} found for "${query}".`
+      : `No products found for "${query}".`;
+
+    if (!matches.length) {
+      resultsRoot.innerHTML = `<p class="search-empty-state">No matching products are available right now. Try a different product name or category.</p>`;
+      return;
+    }
+
+    resultsRoot.innerHTML = matches.map((item) => `
+      <article class="product-card reveal">
+        <div class="product-thumb">
+          <span class="product-tag">${escapeHtml(item.badge)}</span>
+          <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.title)}" />
+        </div>
+        <div class="product-content">
+          <h3 class="product-title">${escapeHtml(item.title)}</h3>
+          <div class="price">
+            <strong>${escapeHtml(item.price)}</strong>
+            <span>${escapeHtml(item.oldPrice)}</span>
+          </div>
+          <p class="rating">${escapeHtml(item.summary)}</p>
+          <a class="btn btn-primary" href="${escapeHtml(item.url)}">View Product</a>
+        </div>
+      </article>
+    `).join("");
+  };
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    hideSuggestions();
+    renderResults(input.value);
+  });
+
+  input.addEventListener("input", () => {
+    const value = input.value;
+    renderSuggestions(value);
+    renderResults(value);
+  });
+
+  input.addEventListener("focus", () => {
+    renderSuggestions(input.value);
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!form.contains(event.target)) {
+      hideSuggestions();
+    }
+  });
+
+  renderPopular();
+  renderResults(getQuery());
 })();

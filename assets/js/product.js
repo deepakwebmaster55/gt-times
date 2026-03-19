@@ -2,6 +2,7 @@
   const addBtn = document.querySelector("[data-add-to-cart]");
   const statusEl = document.querySelector("[data-cart-status]");
   const buyNow = document.querySelector("[data-product-buy-link]");
+  const shareBtn = document.querySelector("[data-share-product]");
   let isSubmitting = false;
 
   const parsePrice = (value) => {
@@ -14,6 +15,19 @@
     statusEl.textContent = message;
     statusEl.classList.toggle("is-error", !!isError);
     statusEl.classList.toggle("is-success", !isError);
+  };
+
+  const canOrderCurrentProduct = () => {
+    const detail = window.GT_PRODUCT_DETAIL || {};
+    if (detail.is_active === false) {
+      setStatus("This product is inactive right now.", true);
+      return false;
+    }
+    if (Number(detail.stock_quantity || 0) <= 0) {
+      setStatus("This product is out of stock.", true);
+      return false;
+    }
+    return true;
   };
 
   const buildItem = () => {
@@ -43,6 +57,47 @@
     };
   };
 
+  const buildShareUrl = () => {
+    const detail = window.GT_PRODUCT_DETAIL || {};
+    const params = new URLSearchParams(window.location.search);
+    const watchParam = detail.slug || detail.id || params.get("watch") || "";
+    const path = watchParam
+      ? `product-royal-crown-gold.html?watch=${encodeURIComponent(String(watchParam))}`
+      : "product-royal-crown-gold.html";
+
+    if (window.location.protocol === "file:") {
+      return `https://glamtreasure.shop/${path}`;
+    }
+    return new URL(path, window.location.href).href;
+  };
+
+  const handleShare = async () => {
+    const title = document.querySelector("[data-product-name]")?.textContent?.trim() || "Glamtreasure Product";
+    const price = document.querySelector("[data-product-price]")?.textContent?.trim() || "";
+    const url = buildShareUrl();
+    const text = price ? `${title} - ${price}` : title;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, text, url });
+        setStatus("Product link shared.", false);
+        return;
+      } catch (error) {
+        if (error && error.name === "AbortError") return;
+      }
+    }
+
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(url);
+        setStatus("Product link copied. Share it anywhere.", false);
+        return;
+      } catch (error) {}
+    }
+
+    window.prompt("Copy this product link:", url);
+  };
+
   function normalizeImage(value) {
     if (Array.isArray(value)) return value[0] || "";
     if (typeof value === "string") {
@@ -70,6 +125,7 @@
 
   const handleAdd = async () => {
     if (!window.GTStore) return;
+    if (!canOrderCurrentProduct()) return;
     const session = await window.GTStore.getSession();
     const result = await window.GTStore.addToCart(buildItem());
     if (result?.error) {
@@ -86,6 +142,7 @@
   const handleBuyNow = async (event) => {
     event.preventDefault();
     if (!window.GTStore || isSubmitting) return;
+    if (!canOrderCurrentProduct()) return;
     isSubmitting = true;
     try {
       const result = await window.GTStore.addToCart(buildItem());
@@ -116,5 +173,9 @@
 
   if (buyNow) {
     buyNow.addEventListener("click", handleBuyNow);
+  }
+
+  if (shareBtn) {
+    shareBtn.addEventListener("click", handleShare);
   }
 })();
