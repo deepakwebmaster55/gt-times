@@ -385,6 +385,17 @@ window.GT_DATA_READY = (async () => {
       .trim()
       .replace(/\s+/g, "-");
 
+  const getHeroHighlights = (slide) => {
+    const title = String(slide?.title || "").toLowerCase();
+    if (title.includes("fossil")) {
+      return ["Premium Finish", "Gift Ready", "Fast Delivery"];
+    }
+    if (title.includes("rolex")) {
+      return ["Luxury Pick", "Swiss Style", "Statement Wear"];
+    }
+    return ["Top Seller", "Premium Quality", "Trusted COD"];
+  };
+
   const mapProductCard = (product) => {
     const image = normalizeImages(product.images)[0] || "";
     const price = product.price ? `Rs. ${Number(product.price).toLocaleString()}` : "";
@@ -426,7 +437,7 @@ window.GT_DATA_READY = (async () => {
     const tagList = Array.from(tagSet);
     const categorySlug = tagList[0] || "";
     return `
-      <article class="product-card reveal" data-category="${categorySlug}" data-tags="${tagList.join(",")}">
+      <article class="product-card is-visible" data-category="${categorySlug}" data-tags="${tagList.join(",")}">
         <div class="product-thumb">
           <span class="product-tag">${product.badge || "Product"}</span>
           <img src="${image}" alt="${product.title || "Product"}" />
@@ -463,7 +474,7 @@ window.GT_DATA_READY = (async () => {
     const url = blog.url || `blog-${blog.slug}.html`;
     const date = blog.published_at ? new Date(blog.published_at).toLocaleDateString() : "";
     return `
-      <article class="blog-card reveal">
+      <article class="blog-card is-visible">
         <img src="${blog.image_url || "https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?auto=compress&cs=tinysrgb&w=1200"}" alt="${blog.title || "Blog"}" />
         <div class="meta">${date}</div>
         <h3>${blog.title || ""}</h3>
@@ -482,24 +493,38 @@ window.GT_DATA_READY = (async () => {
     `;
   };
 
+  let products = [];
+  if (heroTrack || carouselEls.length || productsGrid || reviewList || searchPage) {
+    products = await fetchProducts();
+  }
+  window.GT_PRODUCTS = products;
+
   if (heroTrack) {
     const slides = await fetchHeroSlides();
     if (slides.length) {
       heroTrack.innerHTML = slides
         .map((slide) => {
+          const heroImage = slide.image_url || "";
           return `
             <article class="hero-slide">
               <div class="hero-copy">
                 <span class="eyebrow">${slide.eyebrow || "Collection"}</span>
                 <h2>${slide.title || ""}</h2>
                 <p>${slide.subtitle || ""}</p>
+                <div class="hero-highlights">
+                  ${getHeroHighlights(slide).map((item) => `<span>${item}</span>`).join("")}
+                </div>
                 <div class="btn-row">
                   <a class="btn btn-primary" href="${slide.primary_cta_link || "shop.html"}">${slide.primary_cta_label || "Shop Now"}</a>
                   <a class="btn btn-secondary" href="${slide.secondary_cta_link || "categories.html"}">${slide.secondary_cta_label || "Explore"}</a>
                 </div>
+                <div class="hero-feature-card">
+                  <strong>Why customers like this</strong>
+                  <p>Clean premium styling, strong wrist presence, and a polished look that works for daily wear and gifting.</p>
+                </div>
               </div>
               <div class="hero-media">
-                <img src="${slide.image_url || ""}" alt="${slide.title || "Hero"}" />
+                <img src="${heroImage}" alt="${slide.title || "Hero"}" />
               </div>
             </article>
           `;
@@ -511,29 +536,25 @@ window.GT_DATA_READY = (async () => {
     }
   }
 
-  let products = [];
-  if (carouselEls.length || productsGrid || reviewList || searchPage) {
-    products = await fetchProducts();
-  }
-  window.GT_PRODUCTS = products;
+  const bySection = (section) => {
+    const wanted = expandSectionAliases(section);
+    return products.filter((product) => {
+      const sections = normalizeSectionList(product.home_sections);
+      const normalized = sections.flatMap((item) => Array.from(expandSectionAliases(item)));
+      return normalized.some((item) => wanted.has(item));
+    });
+  };
+
+  const fallbackBuckets = {
+    featured: products.slice(0, 8),
+    new_arrivals: products.slice(0, 8),
+    bestseller: products.slice(0, 8),
+    premium_choice: products.slice(0, 8),
+    showcase_one: products.slice(0, 6),
+    showcase_two: products.slice(6, 12).length ? products.slice(6, 12) : products.slice(0, 6)
+  };
 
   if (carouselEls.length) {
-      const bySection = (section) => {
-      const wanted = expandSectionAliases(section);
-      return products.filter((product) => {
-        const sections = normalizeSectionList(product.home_sections);
-        const normalized = sections.flatMap((item) => Array.from(expandSectionAliases(item)));
-        return normalized.some((item) => wanted.has(item));
-      });
-    };
-    const fallbackBuckets = {
-      featured: products.slice(0, 8),
-      new_arrivals: products.slice(0, 8),
-      bestseller: products.slice(0, 8),
-      premium_choice: products.slice(0, 8),
-      showcase_one: products.slice(0, 6),
-      showcase_two: products.slice(6, 12).length ? products.slice(6, 12) : products.slice(0, 6)
-    };
     carouselEls.forEach((carousel) => {
       const key = carousel.getAttribute("data-carousel-key");
       const track = carousel.querySelector(".carousel-track");
@@ -547,37 +568,35 @@ window.GT_DATA_READY = (async () => {
         setEmptyNote(track, "products");
       }
     });
+  }
 
-      if (products.length) {
-      const mapShowcaseProduct = (product) => ({
-          id: product.id,
-          name: product.title || "",
-          type: product.subtitle || "Signature Watch",
-          tagline: product.badge || "Signature",
-        desc: product.description || product.short_desc || "",
-        oldPrice: product.old_price ? `Rs. ${Number(product.old_price).toLocaleString()}` : "",
-        newPrice: product.price ? `Rs. ${Number(product.price).toLocaleString()}` : "",
-        images: normalizeImages(product.gallery).length ? normalizeImages(product.gallery) : normalizeImages(product.images),
-        colors: normalizeCategoryList(product.colors).length ? normalizeCategoryList(product.colors) : ["Gold", "Silver", "Blue"],
-        colorImages: product.color_images || {}
-      });
+  if (products.length) {
+    const mapShowcaseProduct = (product) => ({
+      id: product.id,
+      name: product.title || "",
+      type: product.subtitle || "Signature Watch",
+      tagline: product.badge || "Signature",
+      desc: product.description || product.short_desc || "",
+      oldPrice: product.old_price ? `Rs. ${Number(product.old_price).toLocaleString()}` : "",
+      newPrice: product.price ? `Rs. ${Number(product.price).toLocaleString()}` : "",
+      images: normalizeImages(product.gallery).length ? normalizeImages(product.gallery) : normalizeImages(product.images),
+      colors: normalizeCategoryList(product.colors).length ? normalizeCategoryList(product.colors) : ["Gold", "Silver", "Blue"],
+      colorImages: product.color_images || {}
+    });
 
-      const showcaseOneSource = bySection("showcase_one").length ? bySection("showcase_one") : (fallbackBuckets.showcase_one || []);
-      const showcaseOne = showcaseOneSource.map(mapShowcaseProduct);
-      const showcaseOneIds = new Set(showcaseOne.map((item) => item.id));
-      const showcaseTwoSource = bySection("showcase_two").length ? bySection("showcase_two") : (fallbackBuckets.showcase_two || []);
-      const showcaseTwo = showcaseTwoSource
-        .filter((product) => !showcaseOneIds.has(product.id))
-        .map(mapShowcaseProduct);
+    const showcaseOneSource = bySection("showcase_one").length ? bySection("showcase_one") : (fallbackBuckets.showcase_one || []);
+    const showcaseOne = showcaseOneSource.map(mapShowcaseProduct);
+    const showcaseOneIds = new Set(showcaseOne.map((item) => item.id));
+    const showcaseTwoSource = bySection("showcase_two").length ? bySection("showcase_two") : (fallbackBuckets.showcase_two || []);
+    const showcaseTwo = showcaseTwoSource
+      .filter((product) => !showcaseOneIds.has(product.id))
+      .map(mapShowcaseProduct);
 
-      const showcaseBySection = {
-        showcase_one: showcaseOne,
-        showcase_two: showcaseTwo
-      };
-
-      window.GT_SHOWCASE_DATA = [];
-      window.GT_SHOWCASE_MAP = showcaseBySection;
-    }
+    window.GT_SHOWCASE_DATA = [];
+    window.GT_SHOWCASE_MAP = {
+      showcase_one: showcaseOne,
+      showcase_two: showcaseTwo
+    };
   }
 
   if (productsGrid && products.length) {
