@@ -4,6 +4,19 @@
   const buyNow = document.querySelector("[data-product-buy-link]");
   const shareBtn = document.querySelector("[data-share-product]");
   let isSubmitting = false;
+  let redirecting = false;
+
+  const setGlobalLoading = (value) => {
+    if (window.GTUI && typeof window.GTUI.setLoading === "function") {
+      window.GTUI.setLoading(value);
+    }
+  };
+
+  const showAddedPopup = (message) => {
+    if (window.GTUI && typeof window.GTUI.showCartModal === "function") {
+      window.GTUI.showCartModal(message);
+    }
+  };
 
   const parsePrice = (value) => {
     const num = Number(String(value || "").replace(/[^0-9.]/g, ""));
@@ -124,19 +137,30 @@
   }
 
   const handleAdd = async () => {
-    if (!window.GTStore) return;
+    if (!window.GTStore || isSubmitting) return;
     if (!canOrderCurrentProduct()) return;
-    const session = await window.GTStore.getSession();
-    const result = await window.GTStore.addToCart(buildItem());
-    if (result?.error) {
-      setStatus("Saved locally. Login cart sync will retry.", true);
-      return;
+    isSubmitting = true;
+    redirecting = false;
+    setGlobalLoading(true);
+    try {
+      const session = await window.GTStore.getSession();
+      const result = await window.GTStore.addToCart(buildItem());
+      if (result?.error) {
+        setStatus("Saved locally. Login cart sync will retry.", true);
+        showAddedPopup("Added to cart");
+        return;
+      }
+      if (!session) {
+        setStatus("Added to cart. Login first to buy this item.", true);
+        showAddedPopup("Added to cart");
+        return;
+      }
+      setStatus("Added to cart. View cart to checkout.", false);
+      showAddedPopup("Added to cart");
+    } finally {
+      setGlobalLoading(false);
+      isSubmitting = false;
     }
-    if (!session) {
-      setStatus("Added to cart. Login first to buy this item.", true);
-      return;
-    }
-    setStatus("Added to cart. View cart to checkout.", false);
   };
 
   const handleBuyNow = async (event) => {
@@ -144,6 +168,8 @@
     if (!window.GTStore || isSubmitting) return;
     if (!canOrderCurrentProduct()) return;
     isSubmitting = true;
+    redirecting = false;
+    setGlobalLoading(true);
     try {
       const result = await window.GTStore.addToCart(buildItem());
       if (result?.error) {
@@ -158,11 +184,16 @@
         } catch (error) {
           sessionStorage.setItem("gt_return_to", "checkout.html");
         }
+        redirecting = true;
         window.location.href = "login.html";
         return;
       }
+      redirecting = true;
       window.location.href = "checkout.html";
     } finally {
+      if (!redirecting) {
+        setGlobalLoading(false);
+      }
       isSubmitting = false;
     }
   };

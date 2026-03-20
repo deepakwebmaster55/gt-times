@@ -387,6 +387,54 @@ onReady(() => {
     }, 2600);
   };
 
+  const showSiteNotice = (title, message, eyebrow = "Order Update") => {
+    if (window.GTUI && typeof window.GTUI.showNoticeModal === "function") {
+      window.GTUI.showNoticeModal({ eyebrow, title, message });
+    }
+  };
+
+  const checkCancelledOrderNotice = async () => {
+    if (!window.GTStore?.client) return;
+    const session = await window.GTStore.getSession();
+    if (!session?.user?.id) return;
+
+    const storageKey = `gt_seen_cancelled_orders_${session.user.id}`;
+    let seenIds = [];
+    try {
+      seenIds = JSON.parse(localStorage.getItem(storageKey) || "[]");
+      if (!Array.isArray(seenIds)) seenIds = [];
+    } catch (error) {
+      seenIds = [];
+    }
+
+    const { data, error } = await window.GTStore.client
+      .from("bookings")
+      .select("id, order_number, total_amount, status")
+      .eq("user_id", session.user.id)
+      .eq("status", "cancelled")
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    if (error || !Array.isArray(data) || !data.length) return;
+    const unseen = data.find((row) => !seenIds.includes(row.id));
+    if (!unseen) return;
+
+    seenIds.push(unseen.id);
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(seenIds.slice(-20)));
+    } catch (error) {
+    }
+
+    const orderLabel = unseen.order_number || "your recent order";
+    const amount = Number(unseen.total_amount || 0);
+    const amountText = amount > 0 ? ` Order value: Rs. ${amount.toLocaleString()}.` : "";
+    showSiteNotice(
+      "Your order was cancelled",
+      `Sorry, ${orderLabel} was cancelled by our team.${amountText} Please contact support if you need help placing it again.`,
+      "Sorry For The Trouble"
+    );
+  };
+
   moveAccountToMenu();
   setupTopTicker();
   setupMobileHeaderStack();
@@ -394,6 +442,7 @@ onReady(() => {
   showContactToast();
   highlightActiveLinks();
   ensureFooterSocials();
+  checkCancelledOrderNotice();
 
   let announcements = [
     "Buy any 2 watches and get Rs. 1000 OFF - Code: TIME1000",
@@ -599,6 +648,104 @@ onReady(() => {
 window.initShopFilters = initShopFilters;
 initShopFilters();
 
+onReady(() => {
+  if (!document.querySelector("[data-products-grid]")) return;
+
+  let isProcessingShopAction = false;
+
+  const setGlobalLoading = (value) => {
+    if (window.GTUI && typeof window.GTUI.setLoading === "function") {
+      window.GTUI.setLoading(value);
+    }
+  };
+
+  const showAddedPopup = (message) => {
+    if (window.GTUI && typeof window.GTUI.showCartModal === "function") {
+      window.GTUI.showCartModal(message);
+    }
+  };
+
+  const getCardItem = (card) => {
+    if (!card) return null;
+    const productId = card.getAttribute("data-product-id") || card.getAttribute("data-product-slug") || "";
+    const title = card.getAttribute("data-product-title") || card.querySelector(".product-title")?.textContent?.trim() || "Product";
+    const price = Number(card.getAttribute("data-product-price") || 0);
+    const image = card.getAttribute("data-product-image") || card.querySelector("img")?.getAttribute("src") || "";
+    const stock = Number(card.getAttribute("data-product-stock") || 1);
+    const isActive = card.getAttribute("data-product-active") !== "false";
+    const link = card.getAttribute("data-product-link") || "product-royal-crown-gold.html";
+
+    return {
+      isActive,
+      stock,
+      link,
+      cartItem: {
+        product_id: productId || title,
+        title,
+        price: Number.isFinite(price) ? price : 0,
+        image_url: image,
+        quantity: 1,
+        options: {}
+      }
+    };
+  };
+
+  const storeReturnPath = (path) => {
+    try {
+      const checkoutUrl = new URL(path, window.location.href).href;
+      sessionStorage.setItem("gt_return_to", checkoutUrl);
+    } catch (error) {
+      sessionStorage.setItem("gt_return_to", path);
+    }
+  };
+
+  document.addEventListener("click", async (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const actionButton = target ? target.closest("[data-shop-add-to-cart], [data-shop-buy-now]") : null;
+    if (!(actionButton instanceof HTMLElement)) return;
+    if (!window.GTStore || isProcessingShopAction) return;
+
+    const card = actionButton.closest(".product-card");
+    const payload = getCardItem(card);
+    if (!payload) return;
+
+    if (!payload.isActive || payload.stock <= 0) {
+      event.preventDefault();
+      showAddedPopup("This item is currently unavailable.");
+      return;
+    }
+
+    const isBuyNow = actionButton.hasAttribute("data-shop-buy-now");
+    event.preventDefault();
+    isProcessingShopAction = true;
+    setGlobalLoading(true);
+
+    try {
+      await window.GTStore.addToCart(payload.cartItem);
+
+      if (isBuyNow) {
+        const session = await window.GTStore.getSession();
+        if (!session) {
+          storeReturnPath("checkout.html");
+          window.location.href = "login.html";
+          return;
+        }
+        window.location.href = "checkout.html";
+        return;
+      }
+
+      showAddedPopup("Added to cart");
+    } catch (error) {
+      showAddedPopup("We could not update the cart. Please try again.");
+    } finally {
+      if (!isBuyNow) {
+        setGlobalLoading(false);
+      }
+      isProcessingShopAction = false;
+    }
+  });
+});
+
   const gallery = document.querySelector("[data-product-gallery]");
   if (gallery) {
     const mainImage = gallery.querySelector("#main-product-image");
@@ -692,8 +839,123 @@ initShopFilters();
   });
 });
 
-onReady(() => {  const showcases = document.querySelectorAll("[data-watch-showcase]");
+const normalizeShowcaseImages = (value) => {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+      return trimmed
+        .slice(1, -1)
+        .split(",")
+        .map((item) => item.replace(/^\"|\"$/g, "").trim())
+        .filter(Boolean);
+    }
+    if (trimmed.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+      } catch (error) {
+        return [trimmed];
+      }
+    }
+    return [trimmed];
+  }
+  return value ? [value] : [];
+};
+
+const normalizeShowcaseColors = (value) => {
+  if (Array.isArray(value)) return value.map(String).filter(Boolean);
+  if (typeof value === "string") {
+    return value.split(",").map((item) => item.trim()).filter(Boolean);
+  }
+  return [];
+};
+
+const normalizeShowcaseSections = (value) => {
+  if (Array.isArray(value)) return value.map((item) => String(item || "").trim()).filter(Boolean);
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+      return trimmed
+        .slice(1, -1)
+        .split(",")
+        .map((item) => item.replace(/^\"|\"$/g, "").trim())
+        .filter(Boolean);
+    }
+    return trimmed.split(",").map((item) => item.trim()).filter(Boolean);
+  }
+  return [];
+};
+
+const normalizeShowcaseSectionKey = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .trim()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+const expandShowcaseAliases = (value) => {
+  const key = normalizeShowcaseSectionKey(value);
+  const aliases = new Set([key]);
+  if (key === "showcase_1") aliases.add("showcase_one");
+  if (key === "showcase_2") aliases.add("showcase_two");
+  if (key === "showcase_one") aliases.add("showcase_1");
+  if (key === "showcase_two") aliases.add("showcase_2");
+  return aliases;
+};
+
+const buildShowcaseMapFromProducts = () => {
+  const products = Array.isArray(window.GT_PRODUCTS) ? window.GT_PRODUCTS : [];
+  if (!products.length) return { showcase_one: [], showcase_two: [] };
+
+  const bySection = (section) => {
+    const wanted = expandShowcaseAliases(section);
+    return products.filter((product) => {
+      const sections = normalizeShowcaseSections(product.home_sections);
+      const normalized = sections.flatMap((item) => Array.from(expandShowcaseAliases(item)));
+      return normalized.some((item) => wanted.has(item));
+    });
+  };
+
+  const fallbackOne = products.slice(0, 6);
+  const fallbackTwo = products.slice(6, 12).length ? products.slice(6, 12) : products.slice(0, 6);
+  const mapProduct = (product) => ({
+    id: product.id,
+    name: product.title || "",
+    type: product.subtitle || "Signature Watch",
+    tagline: product.badge || "Signature",
+    desc: product.description || product.short_desc || "",
+    oldPrice: product.old_price ? `Rs. ${Number(product.old_price).toLocaleString()}` : "",
+    newPrice: product.price ? `Rs. ${Number(product.price).toLocaleString()}` : "",
+    images: normalizeShowcaseImages(product.gallery).length ? normalizeShowcaseImages(product.gallery) : normalizeShowcaseImages(product.images),
+    colors: normalizeShowcaseColors(product.colors).length ? normalizeShowcaseColors(product.colors) : ["Gold", "Silver", "Blue"],
+    colorImages: product.color_images || {}
+  });
+
+  const showcaseOne = (bySection("showcase_one").length ? bySection("showcase_one") : fallbackOne).map(mapProduct);
+  const usedIds = new Set(showcaseOne.map((item) => item.id));
+  let showcaseTwo = (bySection("showcase_two").length ? bySection("showcase_two") : fallbackTwo)
+    .filter((product) => !usedIds.has(product.id))
+    .map(mapProduct);
+
+  if (!showcaseTwo.length) {
+    const secondFallback = products.filter((product) => !usedIds.has(product.id)).slice(0, 6);
+    showcaseTwo = (secondFallback.length ? secondFallback : fallbackTwo).map(mapProduct);
+  }
+
+  return { showcase_one: showcaseOne, showcase_two: showcaseTwo };
+};
+
+const renderWatchShowcases = () => {
+  const showcases = document.querySelectorAll("[data-watch-showcase]");
   if (showcases.length === 0) return;
+
+  if (!window.GT_SHOWCASE_MAP || !Object.keys(window.GT_SHOWCASE_MAP).length) {
+    window.GT_SHOWCASE_MAP = buildShowcaseMapFromProducts();
+  }
 
   showcases.forEach((showcase) => {
     const source = showcase.getAttribute("data-showcase-source") || "showcase_one";
@@ -714,9 +976,11 @@ onReady(() => {  const showcases = document.querySelectorAll("[data-watch-showca
         : "No products added to Showcase 1 yet.";
       return;
     }
+
     showcase.classList.remove("is-skeleton");
     const existingNote = showcase.querySelector(".empty-note");
     if (existingNote) existingNote.remove();
+    showcase.querySelectorAll(".showcase-skeleton").forEach((node) => node.remove());
 
     const nameEl = showcase.querySelector("[data-showcase-name]");
     const typeEl = showcase.querySelector("[data-showcase-type]");
@@ -816,7 +1080,10 @@ onReady(() => {  const showcases = document.querySelectorAll("[data-watch-showca
 
     render();
   });
-});
+};
+
+onReady(renderWatchShowcases);
+window.addEventListener("gt:data-ready", renderWatchShowcases);
 
 onReady(() => {
   const productPage = document.querySelector("[data-product-page]");

@@ -425,6 +425,7 @@ window.GT_DATA_READY = (async () => {
     const price = product.price ? `Rs. ${Number(product.price).toLocaleString()}` : "";
     const oldPrice = product.old_price ? `Rs. ${Number(product.old_price).toLocaleString()}` : "";
     const slugOrId = product.slug || product.id || "";
+    const productLink = `product-royal-crown-gold.html?watch=${encodeURIComponent(slugOrId)}`;
     const categories = normalizeCategoryList(product.category);
     const tagSet = new Set();
     categories.forEach((cat) => {
@@ -437,19 +438,34 @@ window.GT_DATA_READY = (async () => {
     const tagList = Array.from(tagSet);
     const categorySlug = tagList[0] || "";
     return `
-      <article class="product-card is-visible" data-category="${categorySlug}" data-tags="${tagList.join(",")}">
-        <div class="product-thumb">
+      <article
+        class="product-card is-visible"
+        data-category="${categorySlug}"
+        data-tags="${tagList.join(",")}"
+        data-product-id="${String(product.id || "")}"
+        data-product-slug="${String(product.slug || "")}"
+        data-product-title="${String(product.title || "").replace(/"/g, "&quot;")}"
+        data-product-price="${String(product.price || 0)}"
+        data-product-image="${String(image || "").replace(/"/g, "&quot;")}"
+        data-product-link="${productLink}"
+        data-product-stock="${String(product.stock_quantity ?? "")}"
+        data-product-active="${product.is_active === false ? "false" : "true"}"
+      >
+        <a class="product-thumb" href="${productLink}" aria-label="View ${product.title || "Product"} details">
           <span class="product-tag">${product.badge || "Product"}</span>
           <img src="${image}" alt="${product.title || "Product"}" />
-        </div>
+        </a>
         <div class="product-content">
-          <h3 class="product-title">${product.title || ""}</h3>
+          <h3 class="product-title"><a href="${productLink}">${product.title || ""}</a></h3>
           <div class="price">
             <strong>${price}</strong>
             <span>${oldPrice}</span>
           </div>
           <p class="rating">${product.short_desc || ""}</p>
-          <a class="btn btn-primary" href="product-royal-crown-gold.html?watch=${encodeURIComponent(slugOrId)}">Buy Now</a>
+          <div class="product-card-actions">
+            <button class="btn btn-secondary" type="button" data-shop-add-to-cart>Add to Cart</button>
+            <button class="btn btn-primary" type="button" data-shop-buy-now>Buy Now</button>
+          </div>
         </div>
       </article>
     `;
@@ -588,9 +604,14 @@ window.GT_DATA_READY = (async () => {
     const showcaseOne = showcaseOneSource.map(mapShowcaseProduct);
     const showcaseOneIds = new Set(showcaseOne.map((item) => item.id));
     const showcaseTwoSource = bySection("showcase_two").length ? bySection("showcase_two") : (fallbackBuckets.showcase_two || []);
-    const showcaseTwo = showcaseTwoSource
+    let showcaseTwo = showcaseTwoSource
       .filter((product) => !showcaseOneIds.has(product.id))
       .map(mapShowcaseProduct);
+
+    if (!showcaseTwo.length) {
+      const secondFallback = products.filter((product) => !showcaseOneIds.has(product.id)).slice(0, 6);
+      showcaseTwo = (secondFallback.length ? secondFallback : showcaseTwoSource).map(mapShowcaseProduct);
+    }
 
     window.GT_SHOWCASE_DATA = [];
     window.GT_SHOWCASE_MAP = {
@@ -735,6 +756,8 @@ window.GT_DATA_READY = (async () => {
       }
     }
   }
+
+  window.dispatchEvent(new CustomEvent("gt:data-ready"));
 })();
 
 function finishLoading() {
