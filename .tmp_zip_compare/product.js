@@ -32,18 +32,24 @@
 
   const canOrderCurrentProduct = () => {
     const detail = window.GT_PRODUCT_DETAIL || {};
+
+    // If GT_PRODUCT_DETAIL was never set (e.g. static product page or data.js
+    // hasn't loaded the product yet), allow the action — don't block the user.
     const hasDetailData = !!(detail.id || detail.slug || detail.title);
 
     if (hasDetailData) {
+      // Only block if the DB explicitly marks the product inactive.
       if (detail.is_active === false) {
         setStatus("This product is inactive right now.", true);
         return false;
       }
+      // Only block if stock is explicitly 0 (not missing/undefined).
       if (typeof detail.stock_quantity !== "undefined" && Number(detail.stock_quantity) <= 0) {
         setStatus("This product is out of stock.", true);
         return false;
       }
     }
+
     return true;
   };
 

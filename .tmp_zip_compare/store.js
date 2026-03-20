@@ -46,7 +46,8 @@
   });
   let authInitialized = false;
   const resolveAuthReady = (session) => {
-    // Resolve only once, using whichever auth restoration path wins first.
+    // Only resolve the promise once (Promise can only resolve once anyway),
+    // but do NOT skip if session is valid — the first resolution wins.
     if (!authInitialized) {
       authInitialized = true;
       authReadyResolve(session || null);
@@ -117,8 +118,11 @@
 
   const getSession = async () => {
     if (!client) return null;
-    // Wait until Supabase has had a chance to restore any persisted session.
+    // Wait for auth to be fully restored from localStorage before checking.
+    // This prevents a false "not logged in" result on page refresh.
     await authReady;
+    // Always re-fetch the live session after authReady so we get the
+    // persisted session that Supabase loaded from localStorage.
     const { data } = await client.auth.getSession();
     return data.session || null;
   };
@@ -307,21 +311,19 @@
   };
 
   const init = () => {
-    if (!client) {
-      loadCart();
-      return;
-    }
-
+    loadCart();
+    if (!client) return;
+    // Immediately fetch the persisted session from localStorage.
+    // This resolves authReady so getSession() callers don't get a false null.
     client.auth.getSession()
       .then(({ data }) => {
         resolveAuthReady(data?.session || null);
-        return loadCart();
       })
       .catch(() => {
         resolveAuthReady(null);
-        return loadCart();
       });
     client.auth.onAuthStateChange(async (event, session) => {
+      // Also resolve authReady here in case onAuthStateChange fires first.
       resolveAuthReady(session || null);
       if (event === "SIGNED_IN" && session) {
         await mergeLocalToDb(session);
