@@ -6,6 +6,7 @@
   const totalEl = document.querySelector("[data-checkout-total]");
   const addressSelect = document.querySelector("[data-checkout-address]");
   const addressNote = document.querySelector("[data-checkout-address-note]");
+  const phoneNote = document.querySelector("[data-checkout-phone-note]");
   const placeOrderBtn = document.querySelector("[data-place-order]");
   const statusEl = document.querySelector("[data-checkout-status]");
   let isPlacingOrder = false;
@@ -20,6 +21,15 @@
     if (!statusEl) return;
     statusEl.textContent = message;
     statusEl.style.color = isError ? "#c13a2e" : "";
+  };
+
+  const normalizePhone = (value) => {
+    const digits = String(value || "").replace(/\D/g, "");
+    if (!digits) return "";
+    if (digits.startsWith("91") && digits.length === 12) return `+${digits}`;
+    if (digits.length === 10) return `+91${digits}`;
+    if (digits.length >= 11 && digits.length <= 15) return `+${digits}`;
+    return "";
   };
 
   const calcTotals = (items) => {
@@ -194,6 +204,9 @@
     if (!session) {
       addressSelect.innerHTML = "<option value=\"\">Select address</option>";
       if (addressNote) addressNote.textContent = "Login to choose a saved address.";
+      if (phoneNote) {
+        phoneNote.innerHTML = "<strong>Phone verification:</strong> Login first, then verify your phone in Account.";
+      }
       return;
     }
     const { data } = await window.GTStore.client
@@ -215,16 +228,32 @@
       addressSelect.value = defaultAddress.id;
     }
     if (addressNote) addressNote.textContent = addresses.length ? "" : "Add an address in your account first.";
+    await ensurePhone(session, false);
   };
 
-  const ensurePhone = async (session) => {
+  const ensurePhone = async (session, showErrors = true) => {
     const { data } = await window.GTStore.client
       .from("profiles")
-      .select("phone")
+      .select("phone, phone_verified, verified_phone")
       .eq("id", session.user.id)
       .maybeSingle();
-    if (!data?.phone) {
-      setStatus("Please add your phone number in Account before ordering.", true);
+    const normalizedPhone = normalizePhone(data?.phone || "");
+    const isVerified = !!(data?.phone_verified && normalizedPhone && data?.verified_phone === normalizedPhone);
+    if (phoneNote) {
+      phoneNote.innerHTML = isVerified
+        ? `<strong>Phone verification:</strong> ${normalizedPhone} is verified for this account.`
+        : "<strong>Phone verification:</strong> Verify your phone in Account before placing a COD order.";
+    }
+    if (!normalizedPhone) {
+      if (showErrors) {
+        setStatus("Please add your phone number in Account before ordering.", true);
+      }
+      return false;
+    }
+    if (!isVerified) {
+      if (showErrors) {
+        setStatus("Please verify your phone number in Account before booking.", true);
+      }
       return false;
     }
     return true;

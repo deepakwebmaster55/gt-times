@@ -19,6 +19,15 @@
     return client;
   };
 
+  const normalizePhone = (value) => {
+    const digits = String(value || "").replace(/\D/g, "");
+    if (!digits) return "";
+    if (digits.startsWith("91") && digits.length === 12) return `+${digits}`;
+    if (digits.length === 10) return `+91${digits}`;
+    if (digits.length >= 11 && digits.length <= 15) return `+${digits}`;
+    return "";
+  };
+
   const getRedirectPath = () => {
     const path = window.location.pathname || "/";
     if (path.endsWith("/signup.html")) {
@@ -55,6 +64,10 @@
       id: session.user.id,
       full_name: overrides.full_name || meta.full_name || meta.name || "",
       phone: overrides.phone || meta.phone || "",
+      phone_e164: normalizePhone(overrides.phone || meta.phone || "") || null,
+      phone_verified: false,
+      verified_phone: null,
+      phone_verified_at: null,
       email: overrides.email || session?.user?.email || ""
     };
     await client.from("profiles").upsert(payload);

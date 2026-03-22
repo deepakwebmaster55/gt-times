@@ -724,12 +724,6 @@ onReady(() => {
       await window.GTStore.addToCart(payload.cartItem);
 
       if (isBuyNow) {
-        const session = await window.GTStore.getSession();
-        if (!session) {
-          storeReturnPath("checkout.html");
-          window.location.href = "login.html";
-          return;
-        }
         window.location.href = "checkout.html";
         return;
       }

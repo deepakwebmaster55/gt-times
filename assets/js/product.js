@@ -179,19 +179,6 @@
       if (result?.error) {
         setStatus("Cart synced locally. Continuing to checkout.", true);
       }
-      const session = await window.GTStore.getSession();
-      if (!session) {
-        setStatus("Please login first to buy this item.", true);
-        try {
-          const checkoutUrl = new URL("checkout.html", window.location.href).href;
-          sessionStorage.setItem("gt_return_to", checkoutUrl);
-        } catch (error) {
-          sessionStorage.setItem("gt_return_to", "checkout.html");
-        }
-        redirecting = true;
-        window.location.href = "login.html";
-        return;
-      }
       redirecting = true;
       window.location.href = "checkout.html";
     } finally {
@@ -213,4 +200,94 @@
   if (shareBtn) {
     shareBtn.addEventListener("click", handleShare);
   }
+
+  const initGalleryLock = () => {
+    const shell = document.querySelector(".product-page-shell");
+    const column = shell?.querySelector(".product-gallery-column");
+    const gallery = column?.querySelector(".product-gallery");
+    const mobileQuery = window.matchMedia("(max-width: 880px)");
+
+    if (!shell || !column || !gallery) return;
+
+    const resetGalleryState = () => {
+      column.classList.remove("is-fixed", "is-bottom");
+      column.style.removeProperty("--product-gallery-width");
+      column.style.removeProperty("--product-gallery-height");
+      column.style.removeProperty("--product-gallery-top");
+      column.style.removeProperty("minHeight");
+    };
+
+    const getTopOffset = () => {
+      const siteHeader = document.querySelector(".site-header");
+      const headerHeight = siteHeader ? siteHeader.getBoundingClientRect().height : 0;
+      return Math.round(headerHeight + 24);
+    };
+
+    const updateGalleryState = () => {
+      if (mobileQuery.matches) {
+        resetGalleryState();
+        return;
+      }
+
+      const topOffset = getTopOffset();
+      const shellRect = shell.getBoundingClientRect();
+      const columnRect = column.getBoundingClientRect();
+      const galleryHeight = gallery.offsetHeight;
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+      const maxGalleryHeight = Math.max(260, viewportHeight - topOffset - 24);
+      const shellHeight = shell.offsetHeight;
+
+      column.style.setProperty("--product-gallery-width", `${Math.round(columnRect.width)}px`);
+      column.style.setProperty("--product-gallery-height", `${Math.round(galleryHeight)}px`);
+      column.style.setProperty("--product-gallery-top", `${topOffset}px`);
+      column.style.minHeight = `${Math.round(shellHeight)}px`;
+
+      if (galleryHeight >= maxGalleryHeight || shellRect.height <= galleryHeight + topOffset) {
+        resetGalleryState();
+        return;
+      }
+
+      const shellTop = shellRect.top + window.scrollY;
+      const shellBottom = shellRect.bottom + window.scrollY;
+      const startLock = shellTop - topOffset;
+      const endLock = shellBottom - galleryHeight - topOffset;
+      const currentScroll = window.scrollY;
+
+      column.classList.remove("is-fixed", "is-bottom");
+
+      if (currentScroll <= startLock) {
+        return;
+      }
+
+      if (currentScroll >= endLock) {
+        column.classList.add("is-bottom");
+        return;
+      }
+
+      column.classList.add("is-fixed");
+    };
+
+    let ticking = false;
+    const requestUpdate = () => {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(() => {
+        updateGalleryState();
+        ticking = false;
+      });
+    };
+
+    window.addEventListener("scroll", requestUpdate, { passive: true });
+    window.addEventListener("resize", requestUpdate);
+    mobileQuery.addEventListener("change", requestUpdate);
+    window.addEventListener("load", requestUpdate);
+    gallery.querySelectorAll("img").forEach((img) => {
+      if (!img.complete) {
+        img.addEventListener("load", requestUpdate, { once: true });
+      }
+    });
+    requestUpdate();
+  };
+
+  initGalleryLock();
 })();
