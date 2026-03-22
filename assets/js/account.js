@@ -14,9 +14,12 @@
   const phoneSummaryEl = document.querySelector("[data-phone-verify-summary]");
   const phoneBadgeEl = document.querySelector("[data-phone-verify-badge]");
   const sendOtpBtn = document.querySelector("[data-send-phone-otp]");
+  const phoneOtpArea = document.querySelector("[data-phone-otp-area]");
+  const phoneVerifyPhoneInput = document.querySelector("#phone-input-verify");
   let editingAddressId = "";
   let currentProfile = null;
   let phoneOtpRequestedFor = "";
+  let phoneOtpLogId = "";
 
   const setStatus = (text, isError) => {
     if (!statusEl) return;
@@ -197,6 +200,11 @@
       }
     }
 
+    if (phoneVerifyPhoneInput) {
+      phoneVerifyPhoneInput.value = formPhone || "";
+      phoneVerifyPhoneInput.disabled = true;
+    }
+
     if (sendOtpBtn) {
       sendOtpBtn.textContent = isVerified ? "Verified" : "Send OTP";
       sendOtpBtn.disabled = isVerified || !normalized;
@@ -210,6 +218,9 @@
     const verifyBtn = phoneVerifyForm?.querySelector("[data-confirm-phone-otp]");
     if (verifyBtn) {
       verifyBtn.disabled = isVerified || !normalized;
+    }
+    if (phoneOtpArea) {
+      phoneOtpArea.style.display = isVerified ? "none" : (phoneOtpRequestedFor === normalized && normalized ? "block" : "none");
     }
   };
 
@@ -409,6 +420,8 @@
     if (!profileForm) return;
     const phoneInput = profileForm.querySelector("#profile-phone");
     phoneInput?.addEventListener("input", () => {
+      phoneOtpRequestedFor = "";
+      phoneOtpLogId = "";
       renderPhoneVerification({
         ...(currentProfile || {}),
         phone: phoneInput.value.trim(),
@@ -452,8 +465,10 @@
           setStatus("Enter a valid mobile number and save it first.", true);
           return;
         }
-        await callPhoneVerification(session, { action: "send", phone: normalizedPhone });
+        const result = await callPhoneVerification(session, { action: "send", phone: normalizedPhone });
         phoneOtpRequestedFor = normalizedPhone;
+        phoneOtpLogId = String(result?.log_id || "").trim();
+        if (phoneOtpArea) phoneOtpArea.style.display = "block";
         setStatus(`OTP sent to ${normalizedPhone}. Enter it below to complete verification.`, false);
       } catch (error) {
         setStatus(error.message || "Unable to send OTP.", true);
@@ -476,11 +491,16 @@
         setStatus("Phone number changed. Please send a new OTP.", true);
         return;
       }
+      if (!phoneOtpLogId) {
+        setStatus("Please send a fresh OTP first.", true);
+        return;
+      }
       try {
         const result = await callPhoneVerification(session, {
           action: "verify",
           phone: normalizedPhone,
-          otp
+          otp,
+          log_id: phoneOtpLogId
         });
         const { data } = await client.from("profiles").select("*").eq("id", session.user.id).maybeSingle();
         currentProfile = data || {
@@ -491,8 +511,11 @@
           verified_phone: normalizedPhone,
           phone_verified_at: result.verified_at || new Date().toISOString()
         };
+        phoneOtpRequestedFor = normalizedPhone;
+        phoneOtpLogId = "";
         renderPhoneVerification(currentProfile);
         phoneVerifyForm.reset();
+        if (phoneVerifyPhoneInput) phoneVerifyPhoneInput.value = normalizedPhone;
         setStatus("Phone number verified. Future bookings on this number will not ask again.", false);
       } catch (error) {
         setStatus(error.message || "OTP verification failed.", true);

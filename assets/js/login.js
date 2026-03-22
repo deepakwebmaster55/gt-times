@@ -2,12 +2,18 @@
   const statusEl = document.querySelector("[data-login-status]");
   const loginForm = document.querySelector("[data-login-form]");
   const googleBtn = document.querySelector("[data-google-login]");
+  const helperEl = document.querySelector("[data-login-helper]");
 
   const setStatus = (text, isError) => {
     if (!statusEl) return;
     statusEl.textContent = text;
     statusEl.classList.toggle("is-error", !!isError);
     statusEl.classList.toggle("is-success", !isError);
+  };
+
+  const showSignupHelper = (visible) => {
+    if (!helperEl) return;
+    helperEl.style.display = visible ? "block" : "none";
   };
 
   const requireClient = () => {
@@ -57,11 +63,29 @@
       const password = loginForm.querySelector("[name=\"password\"]").value;
       const { data, error } = await client.auth.signInWithPassword({ email, password });
       if (error) {
-        setStatus(error.message, true);
+        const message = String(error.message || "");
+        const normalizedMessage = message.toLowerCase();
+        const looksUnregistered =
+          normalizedMessage.includes("invalid login credentials") ||
+          normalizedMessage.includes("user not found");
+        const needsEmailVerification = normalizedMessage.includes("email not confirmed");
+        if (looksUnregistered) {
+          setStatus("This account is not registered yet. Please sign up first.", true);
+          showSignupHelper(true);
+          return;
+        }
+        if (needsEmailVerification) {
+          setStatus("Your account exists, but your email is not verified yet. Please check your inbox and verify your email first.", true);
+          showSignupHelper(false);
+          return;
+        }
+        setStatus(message, true);
+        showSignupHelper(false);
         return;
       }
       if (data?.session) {
         setStatus("Login successful. Redirecting...", false);
+        showSignupHelper(false);
         redirectAfterAuth();
       }
     });

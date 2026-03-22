@@ -3740,6 +3740,20 @@ html.gt-site-ready body {
   margin-right: 0.55rem;
 }
 
+.otp-box {
+  width: 45px;
+  height: 55px;
+  text-align: center;
+  font-size: 1.5rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+.otp-box:focus {
+  outline: 2px solid rgba(26, 115, 232, 0.18);
+  border-color: #1a73e8;
+}
+
 .link-inline {
   color: var(--accent);
   font-weight: 600;

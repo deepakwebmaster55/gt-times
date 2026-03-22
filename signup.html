@@ -55,35 +55,43 @@
     </section>
 
     <section class="section section-tight">
-      <div class="container" style="max-width:520px;">
+      <div class="container" style="max-width:480px;">
         <p class="form-status" data-signup-status></p>
-        <div class="account-card reveal">
-          <form class="form-grid" data-signup-form>
-            <div>
-              <label for="signup-name">Full Name</label>
-              <input id="signup-name" name="full_name" type="text" placeholder="Your name" required />
-            </div>
-            <div>
-              <label for="signup-phone">Phone</label>
-              <input id="signup-phone" name="phone" type="tel" placeholder="Your phone" required />
-            </div>
-            <div>
-              <label for="signup-email">Email</label>
-              <input id="signup-email" name="email" type="email" placeholder="you@email.com" required />
-            </div>
-            <div>
-              <label for="signup-password">Password</label>
-              <input id="signup-password" name="password" type="password" placeholder="Create a password" required />
-            </div>
-            <button class="btn btn-secondary" type="submit">Create Account</button>
-          </form>
-          <div class="social-auth">
-            <button class="btn btn-outline" type="button" data-google-login>
-              <span class="google-icon" aria-hidden="true">G</span>
-              Continue with Google
+        <div class="account-card reveal" style="padding: 2.5rem 2rem;">
+          <div class="social-auth" style="margin-bottom: 1.5rem;">
+            <button class="btn btn-outline" type="button" data-google-login style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 10px; font-weight: 500;">
+              <span class="google-icon" aria-hidden="true" style="font-weight: bold; color: #DB4437;">G</span>
+              Sign up with Google
             </button>
           </div>
-          <p class="small" style="margin-top:1rem;">Already have an account? <a class="link-inline" href="login.html">Login</a></p>
+
+          <div style="display: flex; align-items: center; text-align: center; margin: 1.5rem 0; color: #888;">
+            <hr style="flex-grow: 1; border: none; border-top: 1px solid #eaeaea;" />
+            <span style="padding: 0 15px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">Or register with email</span>
+            <hr style="flex-grow: 1; border: none; border-top: 1px solid #eaeaea;" />
+          </div>
+
+          <form class="form-grid" data-signup-form>
+            <div>
+              <label for="signup-name" style="font-size: 0.9rem; font-weight: 500;">Full Name</label>
+              <input id="signup-name" name="full_name" type="text" placeholder="Your name" required style="padding: 0.8rem; border-radius: 6px; border: 1px solid #ccc; width: 100%;" />
+            </div>
+            <div>
+              <label for="signup-phone" style="font-size: 0.9rem; font-weight: 500;">Phone Number</label>
+              <input id="signup-phone" name="phone" type="tel" placeholder="+91 00000 00000" required style="padding: 0.8rem; border-radius: 6px; border: 1px solid #ccc; width: 100%;" />
+            </div>
+            <div>
+              <label for="signup-email" style="font-size: 0.9rem; font-weight: 500;">Email</label>
+              <input id="signup-email" name="email" type="email" placeholder="you@email.com" required style="padding: 0.8rem; border-radius: 6px; border: 1px solid #ccc; width: 100%;" />
+            </div>
+            <div>
+              <label for="signup-password" style="font-size: 0.9rem; font-weight: 500;">Password</label>
+              <input id="signup-password" name="password" type="password" placeholder="Create a strong password" required style="padding: 0.8rem; border-radius: 6px; border: 1px solid #ccc; width: 100%;" />
+              <p class="small" style="margin: 0.55rem 0 0; color: #666;">Remember this password to login again, and check your email inbox after signup to verify your account.</p>
+            </div>
+            <button class="btn btn-secondary" type="submit" style="width: 100%; padding: 0.9rem; font-size: 1rem; margin-top: 0.5rem;">Create Account</button>
+          </form>
+          <p class="small" style="margin-top:2rem; text-align: center;">Already have an account? <a class="link-inline" href="login.html" style="font-weight: 600; text-decoration: underline;">Login here</a></p>
         </div>
       </div>
     </section>

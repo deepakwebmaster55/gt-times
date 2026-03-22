@@ -1,22 +1,22 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Login | Glamtreasure</title>
-  <meta name="description" content="Login to Glamtreasure to access your cart and bookings." />
+  <title>Verify Phone | Glamtreasure</title>
+  <meta name="description" content="Verify your phone number for Glamtreasure." />
   <meta name="robots" content="index, follow" />
-  <link rel="canonical" href="https://glamtreasure.shop/login.html" />
-  <meta property="og:title" content="Glamtreasure Login" />
-  <meta property="og:description" content="Sign in to manage your account and orders." />
-  <meta property="og:url" content="https://glamtreasure.shop/login.html" />
+  <link rel="canonical" href="https://glamtreasure.shop/verify-phone.html" />
+  <meta property="og:title" content="Verify Phone | Glamtreasure" />
+  <meta property="og:description" content="Verify your phone number to enable COD orders and secure your account." />
+  <meta property="og:url" content="https://glamtreasure.shop/verify-phone.html" />
   <meta property="og:image" content="https://glamtreasure.shop/assets/images/logo.svg" />
   <link rel="stylesheet" href="assets/css/styles.css" />
 </head>
 <body>
   <div class="top-strip">
     <div class="container">
-      <p>Welcome back. Login to continue.</p>
+      <p>Secure your account with phone verification.</p>
       <div class="top-links">
         <a href="tel:+917495098330">+91 7495098330</a>
         <a href="mailto:glamtreasure03@gmail.com">glamtreasure03@gmail.com</a>
@@ -38,7 +38,8 @@
           <li><a href="blog.html">Blog</a></li>
           <li><a href="about.html">About</a></li>
           <li><a href="policies.html">Policies</a></li>
-          <li><a href="help-center.html">Help Center</a></li>          <li><a class="cta-link" href="contact.html">Contact</a></li>
+          <li><a href="help-center.html">Help Center</a></li>
+          <li><a class="cta-link" href="contact.html">Contact</a></li>
         </ul>
       </nav>
       <div class="header-actions"><a href="account.html">Account</a><a href="cart.html">Cart (0)</a></div>
@@ -46,47 +47,38 @@
   </header>
 
   <main>
-    <section class="page-hero">
-      <div class="container page-hero-card reveal">
-        <p class="breadcrumb">Home / Login</p>
-        <h1 class="section-title" style="margin-bottom:0.6rem;">Welcome Back</h1>
-        <p class="section-subtitle">Sign in to access your saved cart and order history.</p>
-      </div>
-    </section>
+    <section class="section section-tight" style="padding-top: 4rem; padding-bottom: 4rem;">
+      <div class="container" style="max-width:450px;">
+        <p class="form-status" data-phone-page-status></p>
+        <div class="account-card reveal" style="padding: 2.5rem 2rem; text-align: center;">
+          <h2 class="section-title" style="margin-bottom: 0.5rem;">Verify Your Number</h2>
+          <p class="small" data-phone-page-summary style="color: #666; margin-bottom: 2rem;">We will send a 6-digit verification code to your phone.</p>
 
-    <section class="section section-tight">
-      <div class="container" style="max-width:480px;">
-        <p class="form-status" data-login-status></p>
-        <div class="notice" data-login-helper style="display:none; margin-bottom: 1rem;">
-          <p style="margin: 0 0 0.8rem;">This email does not look registered yet.</p>
-          <a class="btn btn-secondary" href="signup.html">Create Account</a>
-        </div>
-        <div class="account-card reveal" style="padding: 2.5rem 2rem;">
-          <div class="social-auth" style="margin-bottom: 1.5rem;">
-            <button class="btn btn-outline" type="button" data-google-login style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 10px; font-weight: 500;">
-              <span class="google-icon" aria-hidden="true" style="font-weight: bold; color: #DB4437;">G</span>
-              Continue with Google
-            </button>
-          </div>
-
-          <div style="display: flex; align-items: center; text-align: center; margin: 1.5rem 0; color: #888;">
-            <hr style="flex-grow: 1; border: none; border-top: 1px solid #eaeaea;" />
-            <span style="padding: 0 15px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">Or login with email</span>
-            <hr style="flex-grow: 1; border: none; border-top: 1px solid #eaeaea;" />
-          </div>
-
-          <form class="form-grid" data-login-form>
+          <form class="form-grid" data-phone-page-send-form style="text-align: left; margin-bottom: 1.5rem;">
             <div>
-              <label for="login-email" style="font-size: 0.9rem; font-weight: 500;">Email Address</label>
-              <input id="login-email" name="email" type="email" placeholder="you@email.com" required style="padding: 0.8rem; border-radius: 6px; border: 1px solid #ccc; width: 100%;" />
+              <label for="verify-phone-number">Mobile Number</label>
+              <input id="verify-phone-number" name="phone" type="tel" placeholder="+91 00000 00000" required />
             </div>
-            <div>
-              <label for="login-password" style="font-size: 0.9rem; font-weight: 500;">Password</label>
-              <input id="login-password" name="password" type="password" placeholder="••••••••" required style="padding: 0.8rem; border-radius: 6px; border: 1px solid #ccc; width: 100%;" />
-            </div>
-            <button class="btn btn-primary" type="submit" style="width: 100%; padding: 0.9rem; font-size: 1rem; margin-top: 0.5rem;">Sign In</button>
+            <button class="btn btn-secondary" type="submit" data-phone-page-send-btn>Send OTP</button>
           </form>
-          <p class="small" style="margin-top:2rem; text-align: center;">New to Glamtreasure? <a class="link-inline" href="signup.html" style="font-weight: 600; text-decoration: underline;">Create an account</a></p>
+
+          <form id="standalone-otp-form" data-phone-page-verify-form style="display: none;">
+            <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 1.5rem;">
+              <input class="otp-box" type="text" maxlength="1" inputmode="numeric" autocomplete="one-time-code" />
+              <input class="otp-box" type="text" maxlength="1" inputmode="numeric" />
+              <input class="otp-box" type="text" maxlength="1" inputmode="numeric" />
+              <input class="otp-box" type="text" maxlength="1" inputmode="numeric" />
+              <input class="otp-box" type="text" maxlength="1" inputmode="numeric" />
+              <input class="otp-box" type="text" maxlength="1" inputmode="numeric" />
+            </div>
+
+            <button class="btn btn-primary" type="submit" style="width: 100%; padding: 0.9rem; font-size: 1rem;">Verify &amp; Continue</button>
+          </form>
+
+          <div style="margin-top: 2rem;">
+            <p class="small" style="margin-bottom: 0.5rem;">Didn't get the code? <button id="resend-otp" data-phone-page-resend type="button" style="background:none; border:none; color: #000; font-weight: 600; text-decoration: underline; cursor:pointer;">Resend OTP</button></p>
+            <p class="small" style="margin-bottom: 0;">Back to <a class="link-inline" href="account.html">My Account</a></p>
+          </div>
         </div>
       </div>
     </section>
@@ -116,7 +108,8 @@
           <li><a href="shop.html">Shop</a></li>
           <li><a href="blog.html">Blog</a></li>
           <li><a href="about.html">About</a></li>
-          <li><a href="help-center.html">Help Center</a></li>          <li><a href="contact.html">Contact</a></li>
+          <li><a href="help-center.html">Help Center</a></li>
+          <li><a href="contact.html">Contact</a></li>
           <li><a href="policies.html">Policies</a></li>
           <li><a href="faq.html">FAQ</a></li>
         </ul>
@@ -134,7 +127,7 @@
           <li><a href="shipping-policy.html">Shipping Policy</a></li>
           <li><a href="return-policy.html">Returns</a></li>
           <li><a href="privacy-policy.html">Privacy</a></li>
-          <li><a href="terms.html">Terms & Conditions</a></li>
+          <li><a href="terms.html">Terms &amp; Conditions</a></li>
         </ul>
       </div>
     </div>
@@ -149,10 +142,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/config.js"></script>
   <script src="assets/js/store.js"></script>
-  <script src="assets/js/login.js"></script>
+  <script src="assets/js/verify-phone.js"></script>
   <script src="assets/js/main.js"></script>
 </body>
 </html>
-
-
-
