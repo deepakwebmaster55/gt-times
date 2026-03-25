@@ -26,14 +26,9 @@ onReady(() => {
     const heroTrack = document.querySelector("[data-slider-track]");
     if (heroTrack && !heroTrack.querySelector(".hero-slide")) {
       heroTrack.innerHTML = `
-        <article class="hero-slide is-active">
-          <div class="hero-copy">
-            <div class="skeleton-line" style="width:120px; margin-bottom:0.8rem;"></div>
-            <div class="skeleton-line" style="width:60%; height:22px; margin-bottom:0.6rem;"></div>
-            <div class="skeleton-line" style="width:80%;"></div>
-          </div>
-          <div class="hero-media">
-            <div class="skeleton-block" style="height:300px;"></div>
+        <article class="hero-slide is-active hero-loading-slide">
+          <div class="hero-loading-state" aria-label="Loading slider" aria-live="polite">
+            <div class="hero-loading-spinner" role="status"></div>
           </div>
         </article>
       `;
@@ -464,48 +459,74 @@ onReady(() => {
     }, 3200);
   }
 
-  const sliders = document.querySelectorAll("[data-slider]");
-  sliders.forEach((slider) => {
+  const initializeHeroSlider = (slider) => {
+    if (!slider) return;
     const slides = Array.from(slider.querySelectorAll(".hero-slide"));
     const track = slider.querySelector("[data-slider-track]");
     if (slides.length === 0 || !track) return;
+
+    if (slider._heroAutoplayTimer) {
+      clearInterval(slider._heroAutoplayTimer);
+      slider._heroAutoplayTimer = null;
+    }
 
     const prevBtn = slider.querySelector("[data-slider-prev]");
     const nextBtn = slider.querySelector("[data-slider-next]");
     const dotsWrap = slider.querySelector("[data-slider-dots]");
     let index = 0;
 
-    const dots = slides.map((_, i) => {
-      if (!dotsWrap) return null;
+    if (dotsWrap) dotsWrap.innerHTML = "";
+
+    const inferDirection = (currentIndex, nextIndex) => {
+      if (nextIndex === currentIndex) return slider.dataset.slideDirection || "next";
+      if (currentIndex === slides.length - 1 && nextIndex === 0) return "next";
+      if (currentIndex === 0 && nextIndex === slides.length - 1) return "prev";
+      return nextIndex > currentIndex ? "next" : "prev";
+    };
+
+    const goTo = (newIndex, forcedDirection) => {
+      const nextIndex = (newIndex + slides.length) % slides.length;
+      const direction = forcedDirection || inferDirection(index, nextIndex);
+      slider.dataset.slideDirection = direction;
+      index = nextIndex;
+      track.style.transform = `translateX(${-index * 100}%)`;
+      slides.forEach((slide, i) => {
+        slide.classList.toggle("is-active", i === index);
+      });
+      const dots = dotsWrap ? Array.from(dotsWrap.querySelectorAll(".slider-dot")) : [];
+      dots.forEach((dot, i) => {
+        dot.classList.toggle("is-active", i === index);
+      });
+    };
+
+    slides.forEach((_, i) => {
+      if (!dotsWrap) return;
       const dot = document.createElement("button");
       dot.type = "button";
       dot.className = "slider-dot";
       dot.setAttribute("aria-label", `Go to slide ${i + 1}`);
       dot.addEventListener("click", () => goTo(i));
       dotsWrap.appendChild(dot);
-      return dot;
     });
 
-    const goTo = (newIndex) => {
-      index = (newIndex + slides.length) % slides.length;
-      track.style.transform = `translateX(${-index * 100}%)`;
-      slides.forEach((slide, i) => {
-        slide.classList.toggle("is-active", i === index);
-        if (dots[i]) dots[i].classList.toggle("is-active", i === index);
-      });
-    };
+    goTo(0, "next");
 
-    goTo(0);
-
-    if (prevBtn) prevBtn.addEventListener("click", () => goTo(index - 1));
-    if (nextBtn) nextBtn.addEventListener("click", () => goTo(index + 1));
+    if (prevBtn) prevBtn.onclick = () => goTo(index - 1, "prev");
+    if (nextBtn) nextBtn.onclick = () => goTo(index + 1, "next");
 
     const autoplay = slider.getAttribute("data-autoplay") === "true";
     const interval = Number(slider.getAttribute("data-interval") || 4000);
-    if (autoplay) {
-      setInterval(() => goTo(index + 1), interval);
+    if (autoplay && slides.length > 1) {
+      slider._heroAutoplayTimer = setInterval(() => goTo(index + 1, "next"), interval);
     }
-  });
+  };
+
+  const initializeHeroSliders = () => {
+    document.querySelectorAll("[data-slider]").forEach((slider) => initializeHeroSlider(slider));
+  };
+
+  initializeHeroSliders();
+  document.addEventListener("gt:hero-slides-ready", initializeHeroSliders);
 
   const carousels = document.querySelectorAll("[data-carousel]");
   carousels.forEach((carousel) => {
@@ -665,6 +686,16 @@ onReady(() => {
     }
   };
 
+  const showLoginNotice = (message) => {
+    if (window.GTUI && typeof window.GTUI.showNoticeModal === "function") {
+      window.GTUI.showNoticeModal({
+        eyebrow: "Login Required",
+        title: "Login First",
+        message: message || "Please login first to continue."
+      });
+    }
+  };
+
   const getCardItem = (card) => {
     if (!card) return null;
     const productId = card.getAttribute("data-product-id") || card.getAttribute("data-product-slug") || "";
@@ -721,7 +752,15 @@ onReady(() => {
     setGlobalLoading(true);
 
     try {
-      await window.GTStore.addToCart(payload.cartItem);
+      const result = await window.GTStore.addToCart(payload.cartItem);
+      if (result?.authRequired) {
+        storeReturnPath(isBuyNow ? "checkout.html" : "cart.html");
+        showLoginNotice(isBuyNow ? "Please login first to buy this item." : "Please login first to add items to cart.");
+        setTimeout(() => {
+          window.location.href = "login.html";
+        }, 500);
+        return;
+      }
 
       if (isBuyNow) {
         window.location.href = "checkout.html";
@@ -737,6 +776,20 @@ onReady(() => {
       }
       isProcessingShopAction = false;
     }
+  });
+
+  document.addEventListener("click", async (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const cartLink = target ? target.closest('a[href="cart.html"]') : null;
+    if (!(cartLink instanceof HTMLAnchorElement) || !window.GTStore) return;
+    const session = await window.GTStore.getSession();
+    if (session) return;
+    event.preventDefault();
+    storeReturnPath("cart.html");
+    showLoginNotice("Please login first to view your cart.");
+    setTimeout(() => {
+      window.location.href = "login.html";
+    }, 500);
   });
 });
 
@@ -1362,13 +1415,19 @@ onReady(() => {
   }
 
 
-  if (mainImage && watch.images && watch.images.length > 0) {
-    mainImage.src = watch.images[0];
+  const productImages = Array.isArray(watch.images) ? watch.images.filter(Boolean) : [];
+
+  if (mainImage && productImages.length > 0) {
+    mainImage.src = productImages[0];
     mainImage.alt = `${watch.name} main image`;
   }
 
   thumbs.forEach((thumb, i) => {
-    const img = watch.images[i] || fallbackImages[i % fallbackImages.length];
+    const img = productImages[i];
+    if (!img) {
+      thumb.remove();
+      return;
+    }
     thumb.setAttribute("data-image", img);
     thumb.setAttribute("data-alt", `${watch.name} view ${i + 1}`);
     const thumbImg = thumb.querySelector("img");
@@ -1426,6 +1485,7 @@ onReady(() => {
     run();
   }
 });
+
 
 
 

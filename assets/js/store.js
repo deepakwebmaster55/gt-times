@@ -40,6 +40,7 @@
   })
     : null;
   const localKey = "gt_cart";
+  const offerKey = "gt_active_offer";
   let authReadyResolve = () => {};
   const authReady = new Promise((resolve) => {
     authReadyResolve = resolve;
@@ -87,6 +88,34 @@
 
   const writeLocalCart = (items) => {
     localStorage.setItem(localKey, JSON.stringify(items));
+  };
+
+  const getActiveOffer = () => {
+    try {
+      const raw = sessionStorage.getItem(offerKey) || localStorage.getItem(offerKey);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const setActiveOffer = (offer) => {
+    try {
+      const value = JSON.stringify(offer || null);
+      sessionStorage.setItem(offerKey, value);
+      localStorage.setItem(offerKey, value);
+    } catch (error) {
+    }
+  };
+
+  const clearActiveOffer = () => {
+    try {
+      sessionStorage.removeItem(offerKey);
+      localStorage.removeItem(offerKey);
+    } catch (error) {
+    }
   };
 
   const stableStringify = (value) => {
@@ -247,16 +276,13 @@
     if (session && client) {
       const { error } = await addToCartDb(session, normalized);
       if (error) {
-        console.warn("Cart insert failed, falling back to local cart.", error);
-        addToCartLocal(normalized);
+        console.warn("Cart insert failed.", error);
         return { ok: false, error };
       }
       await loadCart();
       return { ok: true };
-    } else {
-      addToCartLocal(normalized);
-      return { ok: true };
     }
+    return { ok: false, authRequired: true };
   };
 
   const isLocalKey = (value) => String(value || "").startsWith("local_");
@@ -337,7 +363,10 @@
     loadCart,
     addToCart,
     updateCartItem,
-    removeCartItem
+    removeCartItem,
+    getActiveOffer,
+    setActiveOffer,
+    clearActiveOffer
   };
 
   if (document.readyState === "loading") {

@@ -1,8 +1,11 @@
-﻿(() => {
+(() => {
   const itemsEl = document.querySelector("[data-checkout-items]");
   const emptyNote = document.querySelector("[data-checkout-empty]");
   const subtotalEl = document.querySelector("[data-checkout-subtotal]");
   const shippingEl = document.querySelector("[data-checkout-shipping]");
+  const discountRowEl = document.querySelector("[data-checkout-discount-row]");
+  const discountEl = document.querySelector("[data-checkout-discount]");
+  const offerNoteEl = document.querySelector("[data-checkout-offer-note]");
   const totalEl = document.querySelector("[data-checkout-total]");
   const addressSelect = document.querySelector("[data-checkout-address]");
   const addressNote = document.querySelector("[data-checkout-address-note]");
@@ -10,6 +13,7 @@
   const placeOrderBtn = document.querySelector("[data-place-order]");
   const statusEl = document.querySelector("[data-checkout-status]");
   let isPlacingOrder = false;
+
   const catalogConfig = window.GT_CONFIG?.supabase1 || {};
   const catalogClient = window.supabase && catalogConfig.url && catalogConfig.anonKey
     ? window.supabase.createClient(catalogConfig.url, catalogConfig.anonKey)
@@ -91,6 +95,7 @@
       return {
         ...item,
         _catalog_id: match.id,
+        _catalog_slug: match.slug || "",
         _stock_quantity: Number(match.stock_quantity || 0),
         _is_active: match.is_active !== false,
         title: match.title || item.title,
@@ -119,8 +124,116 @@
     return canonicalItems;
   };
 
-  const ensureStockAvailable = (items) => {
-    for (const item of items) {
+  const getItemKeys = (item) => {
+    const keys = new Set();
+    if (item.product_id) keys.add(String(item.product_id));
+    if (item._catalog_id) keys.add(String(item._catalog_id));
+    if (item._catalog_slug) keys.add(String(item._catalog_slug));
+    return keys;
+  };
+
+  const matchesProduct = (item, target) => {
+    const wanted = String(target || "").trim();
+    if (!wanted) return false;
+    const lower = wanted.toLowerCase();
+    return Array.from(getItemKeys(item)).some((key) => key === wanted || key.toLowerCase() === lower);
+  };
+
+  const fetchOfferProducts = async (offer) => {
+    if (!catalogClient || !offer?.rules) return {};
+    const keys = [offer.rules.product_id, offer.rules.buy_product_id, offer.rules.get_product_id]
+      .filter(Boolean)
+      .map((value) => String(value));
+    if (!keys.length) return {};
+
+    const [byIdRes, bySlugRes] = await Promise.all([
+      catalogClient.from("products").select("id, slug, title, price, images, stock_quantity, is_active").in("id", keys),
+      catalogClient.from("products").select("id, slug, title, price, images, stock_quantity, is_active").in("slug", keys)
+    ]);
+
+    const lookup = {};
+    [...(byIdRes.data || []), ...(bySlugRes.data || [])].forEach((product) => {
+      if (product?.id) lookup[String(product.id)] = product;
+      if (product?.slug) lookup[String(product.slug)] = product;
+    });
+    return lookup;
+  };
+
+  const getOfferSummary = async (items) => {
+    const base = calcTotals(items);
+    const empty = {
+      ...base,
+      discount: 0,
+      total: base.total,
+      applied: false,
+      note: "",
+      bonusItems: []
+    };
+    const offer = window.GTStore?.getActiveOffer?.();
+    if (!offer || !items.length) return empty;
+
+    const rules = offer.rules && typeof offer.rules === "object" ? offer.rules : {};
+    const productLookup = await fetchOfferProducts(offer);
+
+    if (offer.type === "bogo") {
+      const buyQty = Math.max(1, Number(rules.buy_qty || 1));
+      const getQty = Math.max(1, Number(rules.get_qty || 1));
+      const matchingItems = items.filter((item) => matchesProduct(item, rules.buy_product_id));
+      const boughtQty = matchingItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+      const bundles = Math.floor(boughtQty / buyQty);
+      if (bundles < 1) {
+        return { ...empty, note: `Add ${buyQty} of the buy product to activate this BOGO offer.` };
+      }
+
+      const rewardUnits = bundles * getQty;
+      const rewardProduct = productLookup[String(rules.get_product_id || "")] || matchingItems[0] || null;
+      const rewardPrice = Number(rewardProduct?.price || 0);
+      const discount = Math.max(0, rewardUnits * rewardPrice);
+      const bonusItems = rewardUnits > 0 ? [{
+        product_id: rewardProduct?.id || rewardProduct?.slug || rules.get_product_id || "",
+        title: rewardProduct?.title || "Free Offer Item",
+        quantity: rewardUnits,
+        price: 0,
+        _catalog_id: rewardProduct?.id || "",
+        _catalog_slug: rewardProduct?.slug || "",
+        _stock_quantity: Number(rewardProduct?.stock_quantity || 0),
+        _is_active: rewardProduct?.is_active !== false
+      }] : [];
+
+      return {
+        ...base,
+        discount,
+        total: Math.max(0, base.total - discount),
+        applied: discount > 0,
+        note: discount > 0
+          ? `BOGO applied: ${rewardUnits} free item(s) will be included with this order.`
+          : "BOGO is selected, but the reward item is not priced yet.",
+        bonusItems
+      };
+    }
+
+    const matchingItems = items.filter((item) => matchesProduct(item, rules.product_id));
+    const matchedTotal = matchingItems.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0);
+    if (!matchedTotal) {
+      return { ...empty, note: "Add the linked offer product to apply this discount." };
+    }
+
+    const discount = rules.discount_type === "flat"
+      ? Math.min(Number(rules.discount_value || 0), matchedTotal)
+      : Math.min(matchedTotal, (matchedTotal * Math.max(0, Number(rules.discount_value || 0))) / 100);
+
+    return {
+      ...base,
+      discount,
+      total: Math.max(0, base.total - discount),
+      applied: discount > 0,
+      note: discount > 0 ? `${offer.title || "Offer"} applied.` : "Offer selected but no discount was calculated.",
+      bonusItems: []
+    };
+  };
+
+  const ensureStockAvailable = (items, bonusItems = []) => {
+    for (const item of [...items, ...bonusItems]) {
       const title = item.title || "Product";
       const quantity = Number(item.quantity || 0);
       const stockQuantity = Number(item._stock_quantity || 0);
@@ -128,7 +241,7 @@
         setStatus(`${title} is currently inactive and cannot be ordered.`, true);
         return false;
       }
-      if (quantity > stockQuantity) {
+      if (stockQuantity && quantity > stockQuantity) {
         setStatus(`Only ${stockQuantity} unit(s) left for ${title}.`, true);
         return false;
       }
@@ -157,12 +270,12 @@
     }
   };
 
-  const renderItems = (items) => {
+  const renderItems = async (items) => {
     if (!itemsEl) return;
     itemsEl.innerHTML = "";
     if (!items.length) {
       if (emptyNote) emptyNote.style.display = "block";
-      updateSummary([]);
+      await updateSummary([]);
       return;
     }
     if (emptyNote) emptyNote.style.display = "none";
@@ -175,27 +288,34 @@
         .join(" · ");
 
       row.innerHTML = `
-        <div class=\"cart-thumb\">
-          <img src=\"${item.image_url || "assets/images/watch-classic.svg"}\" alt=\"${item.title || "Product"}\" />
+        <div class="cart-thumb">
+          <img src="${item.image_url || "assets/images/watch-classic.svg"}" alt="${item.title || "Product"}" />
         </div>
-        <div class=\"cart-info\">
+        <div class="cart-info">
           <h4>${item.title || "Product"}</h4>
-          <p class=\"small\">${optionText || "Standard selection"}</p>
-          <p class=\"small\">Qty: ${item.quantity || 1}</p>
+          <p class="small">${optionText || "Standard selection"}</p>
+          <p class="small">Qty: ${item.quantity || 1}</p>
         </div>
-        <div class=\"cart-price\">${formatPrice(item.price || 0)}</div>
+        <div class="cart-price">${formatPrice(item.price || 0)}</div>
       `;
 
       itemsEl.appendChild(row);
     });
-    updateSummary(items);
+    await updateSummary(items);
   };
 
-  const updateSummary = (items) => {
-    const totals = calcTotals(items);
+  const updateSummary = async (items) => {
+    const totals = await getOfferSummary(items);
     if (subtotalEl) subtotalEl.textContent = formatPrice(totals.subtotal);
     if (shippingEl) shippingEl.textContent = totals.shipping === 0 ? "Free" : formatPrice(totals.shipping);
+    if (discountRowEl) discountRowEl.style.display = totals.discount > 0 ? "flex" : "none";
+    if (discountEl) discountEl.textContent = `-${formatPrice(totals.discount)}`;
+    if (offerNoteEl) {
+      offerNoteEl.style.display = totals.note ? "block" : "none";
+      offerNoteEl.textContent = totals.note || "";
+    }
     if (totalEl) totalEl.textContent = formatPrice(totals.total);
+    return totals;
   };
 
   const loadAddresses = async () => {
@@ -220,7 +340,7 @@
         const parts = [addr.line1, addr.line2, addr.city, addr.state, addr.postal_code, addr.country]
           .filter(Boolean)
           .join(", ");
-        return `<option value=\"${addr.id}\">${addr.label || "Address"} - ${parts}</option>`;
+        return `<option value="${addr.id}">${addr.label || "Address"} - ${parts}</option>`;
       }))
       .join("");
     const defaultAddress = addresses.find((addr) => addr.is_default);
@@ -245,15 +365,11 @@
         : "<strong>Phone verification:</strong> Verify your phone in Account before placing a COD order.";
     }
     if (!normalizedPhone) {
-      if (showErrors) {
-        setStatus("Please add your phone number in Account before ordering.", true);
-      }
+      if (showErrors) setStatus("Please add your phone number in Account before ordering.", true);
       return false;
     }
     if (!isVerified) {
-      if (showErrors) {
-        setStatus("Please verify your phone number in Account before booking.", true);
-      }
+      if (showErrors) setStatus("Please verify your phone number in Account before booking.", true);
       return false;
     }
     return true;
@@ -269,13 +385,24 @@
     }
     const session = await window.GTStore.getSession();
     if (!session) {
-      setStatus("Please login to place order.", true);
       try {
         sessionStorage.setItem("gt_return_to", window.location.href);
       } catch (error) {
         sessionStorage.setItem("gt_return_to", "checkout.html");
       }
-      window.location.href = "login.html";
+      if (window.GTUI?.showNoticeModal) {
+        window.GTUI.showNoticeModal({
+          eyebrow: "Login Required",
+          title: "Login First",
+          message: "Please login first to place your order.",
+          primaryAction: {
+            label: "Login",
+            href: "login.html"
+          }
+        });
+      } else {
+        setStatus("Please login to place order.", true);
+      }
       isPlacingOrder = false;
       return;
     }
@@ -284,10 +411,13 @@
       isPlacingOrder = false;
       return;
     }
-    if (!ensureStockAvailable(items)) {
+
+    const offerSummary = await getOfferSummary(items);
+    if (!ensureStockAvailable(items, offerSummary.bonusItems || [])) {
       isPlacingOrder = false;
       return;
     }
+
     const addressId = addressSelect?.value || "";
     if (!addressId) {
       setStatus("Please select a delivery address.", true);
@@ -301,7 +431,6 @@
       .eq("id", addressId)
       .maybeSingle();
 
-    const totals = calcTotals(items);
     const orderNumber = `GT-${Date.now()}`;
 
     const { data: booking, error: bookingError } = await window.GTStore.client
@@ -309,7 +438,7 @@
       .insert({
         user_id: session.user.id,
         order_number: orderNumber,
-        total_amount: totals.total,
+        total_amount: offerSummary.total,
         status: "order_placed",
         address_id: addressId,
         address_snapshot: address || null
@@ -329,7 +458,13 @@
       title: item.title,
       quantity: item.quantity,
       price: item.price
-    }));
+    })).concat((offerSummary.bonusItems || []).map((item) => ({
+      booking_id: booking.id,
+      product_id: item.product_id,
+      title: `${item.title} (Offer Bonus)`,
+      quantity: item.quantity,
+      price: 0
+    })));
 
     await window.GTStore.client.from("booking_items").insert(itemsPayload);
 
@@ -337,7 +472,7 @@
       user_id: session.user.id,
       booking_id: booking.id,
       transaction_id: `COD-${orderNumber}`,
-      amount: totals.total,
+      amount: offerSummary.total,
       status: "payment_pending",
       currency: "INR"
     });
@@ -356,17 +491,17 @@
         });
       }
     } catch (error) {
-      // Notification failures should not block checkout.
     }
 
     try {
-      await updateCatalogStock(items);
+      await updateCatalogStock(items.concat(offerSummary.bonusItems || []));
     } catch (error) {
       setStatus("Order placed, but stock sync failed. Update it from admin stocks.", true);
     }
 
     await window.GTStore.client.from("cart_items").delete().eq("user_id", session.user.id);
     localStorage.removeItem("gt_cart");
+    window.GTStore.clearActiveOffer?.();
     try {
       sessionStorage.setItem("gt_last_order_success", JSON.stringify({
         booking_id: booking.id,
@@ -385,7 +520,7 @@
   const refresh = async () => {
     const cartItems = await window.GTStore.loadCart();
     const items = await getCanonicalItems(cartItems);
-    renderItems(items);
+    await renderItems(items);
     await loadAddresses();
   };
 

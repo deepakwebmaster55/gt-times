@@ -44,6 +44,9 @@
         <p class="gt-cart-modal__eyebrow">Cart Updated</p>
         <h3 id="gt-cart-modal-title" class="gt-cart-modal__title">Added to cart</h3>
         <p class="gt-cart-modal__text" data-cart-modal-message>Your item has been added to cart.</p>
+        <div class="gt-cart-modal__actions" data-cart-modal-actions hidden>
+          <a class="btn btn-primary" href="#" data-cart-modal-primary></a>
+        </div>
       </div>
     `;
 
@@ -63,11 +66,13 @@
     return modal;
   };
 
-  const showNoticeModal = ({ eyebrow, title, message } = {}) => {
+  const showNoticeModal = ({ eyebrow, title, message, primaryAction } = {}) => {
     const modal = ensureCartModal();
     const eyebrowEl = modal.querySelector(".gt-cart-modal__eyebrow");
     const titleEl = modal.querySelector(".gt-cart-modal__title");
     const messageEl = modal.querySelector("[data-cart-modal-message]");
+    const actionsEl = modal.querySelector("[data-cart-modal-actions]");
+    const primaryEl = modal.querySelector("[data-cart-modal-primary]");
     if (eyebrowEl) {
       eyebrowEl.textContent = eyebrow || "Notice";
     }
@@ -76,6 +81,17 @@
     }
     if (messageEl) {
       messageEl.textContent = message || "We have an update for you.";
+    }
+    if (actionsEl && primaryEl) {
+      const hasPrimary = !!(primaryAction && primaryAction.href && primaryAction.label);
+      actionsEl.hidden = !hasPrimary;
+      if (hasPrimary) {
+        primaryEl.textContent = primaryAction.label;
+        primaryEl.setAttribute("href", primaryAction.href);
+      } else {
+        primaryEl.textContent = "";
+        primaryEl.setAttribute("href", "#");
+      }
     }
     modal.classList.remove("hidden");
     modal.setAttribute("aria-hidden", "false");

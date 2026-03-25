@@ -18,6 +18,20 @@
     }
   };
 
+  const showLoginNotice = (message) => {
+    if (window.GTUI && typeof window.GTUI.showNoticeModal === "function") {
+      window.GTUI.showNoticeModal({
+        eyebrow: "Login Required",
+        title: "Login First",
+        message: message || "Please login first to continue.",
+        primaryAction: {
+          label: "Login",
+          href: "login.html"
+        }
+      });
+    }
+  };
+
   const parsePrice = (value) => {
     const num = Number(String(value || "").replace(/[^0-9.]/g, ""));
     return Number.isFinite(num) ? num : 0;
@@ -147,16 +161,19 @@
     redirecting = false;
     setGlobalLoading(true);
     try {
-      const session = await window.GTStore.getSession();
       const result = await window.GTStore.addToCart(buildItem());
-      if (result?.error) {
-        setStatus("Saved locally. Login cart sync will retry.", true);
-        showAddedPopup("Added to cart");
+      if (result?.authRequired) {
+        try {
+          const cartUrl = new URL("cart.html", window.location.href).href;
+          sessionStorage.setItem("gt_return_to", cartUrl);
+        } catch (error) {
+          sessionStorage.setItem("gt_return_to", "cart.html");
+        }
+        showLoginNotice("Please login first to add items to cart.");
         return;
       }
-      if (!session) {
-        setStatus("Added to cart. Login first to buy this item.", true);
-        showAddedPopup("Added to cart");
+      if (result?.error) {
+        setStatus("We could not update the cart. Please try again.", true);
         return;
       }
       setStatus("Added to cart. View cart to checkout.", false);
@@ -176,8 +193,19 @@
     setGlobalLoading(true);
     try {
       const result = await window.GTStore.addToCart(buildItem());
+      if (result?.authRequired) {
+        try {
+          const checkoutUrl = new URL("checkout.html", window.location.href).href;
+          sessionStorage.setItem("gt_return_to", checkoutUrl);
+        } catch (error) {
+          sessionStorage.setItem("gt_return_to", "checkout.html");
+        }
+        showLoginNotice("Please login first to continue to checkout.");
+        return;
+      }
       if (result?.error) {
-        setStatus("Cart synced locally. Continuing to checkout.", true);
+        setStatus("We could not update the cart. Please try again.", true);
+        return;
       }
       redirecting = true;
       window.location.href = "checkout.html";

@@ -17,14 +17,9 @@ window.GT_DATA_READY = (async () => {
   const renderSkeletons = () => {
     if (heroTrack) {
       heroTrack.innerHTML = `
-        <article class="hero-slide is-active">
-          <div class="hero-copy">
-            <div class="skeleton-line" style="width:120px; margin-bottom:0.8rem;"></div>
-            <div class="skeleton-line" style="width:60%; height:22px; margin-bottom:0.6rem;"></div>
-            <div class="skeleton-line" style="width:80%;"></div>
-          </div>
-          <div class="hero-media">
-            <div class="skeleton-block" style="height:300px;"></div>
+        <article class="hero-slide is-active hero-loading-slide">
+          <div class="hero-loading-state" aria-label="Loading slider" aria-live="polite">
+            <div class="hero-loading-spinner" role="status"></div>
           </div>
         </article>
       `;
@@ -385,6 +380,14 @@ window.GT_DATA_READY = (async () => {
       .trim()
       .replace(/\s+/g, "-");
 
+  const escapeHtml = (value) =>
+    String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+
   const getHeroHighlights = (slide) => {
     const title = String(slide?.title || "").toLowerCase();
     if (title.includes("fossil")) {
@@ -487,11 +490,32 @@ window.GT_DATA_READY = (async () => {
   };
 
   const mapBlogCard = (blog) => {
-    const url = blog.url || `blog-${blog.slug}.html`;
+    const slug = String(blog.slug || "").trim();
+    const url = slug ? `blog-details.html?slug=${encodeURIComponent(slug)}` : "blog.html";
     const date = blog.published_at ? new Date(blog.published_at).toLocaleDateString() : "";
+    const rawImage = String(blog.image_url || "").trim().replace(/^['"]|['"]$/g, "");
+    const normalizedImage = (() => {
+      if (!rawImage) return "";
+      if (/^https?:\/\//i.test(rawImage) || rawImage.startsWith("data:")) return rawImage;
+      if (!supabase2Config.url) return "";
+
+      const base = supabase2Config.url.replace(/\/+$/, "");
+      if (rawImage.startsWith("/storage/v1/object/public/")) return `${base}${rawImage}`;
+      if (rawImage.startsWith("storage/v1/object/public/")) return `${base}/${rawImage}`;
+      if (rawImage.startsWith("product-images/")) return `${base}/storage/v1/object/public/${rawImage}`;
+      if (rawImage.startsWith("/product-images/")) return `${base}/storage/v1/object/public${rawImage}`;
+      if (rawImage.startsWith("blogs/")) return `${base}/storage/v1/object/public/product-images/${rawImage}`;
+      if (rawImage.startsWith("/blogs/")) return `${base}/storage/v1/object/public/product-images${rawImage}`;
+      if (rawImage.startsWith("/")) return `${base}${rawImage}`;
+      return `${base}/storage/v1/object/public/product-images/${rawImage}`;
+    })();
+
+    const imageTag = normalizedImage
+      ? `<img src="${normalizedImage}" alt="${blog.title || "Blog"}" onerror="this.onerror=null;this.style.display='none'" />`
+      : `<img src="assets/images/logo.svg" alt="${blog.title || "Blog"}" />`;
     return `
       <article class="blog-card is-visible">
-        <img src="${blog.image_url || "https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?auto=compress&cs=tinysrgb&w=1200"}" alt="${blog.title || "Blog"}" />
+        ${imageTag}
         <div class="meta">${date}</div>
         <h3>${blog.title || ""}</h3>
         <p>${blog.summary || ""}</p>
@@ -519,33 +543,52 @@ window.GT_DATA_READY = (async () => {
     const slides = await fetchHeroSlides();
     if (slides.length) {
       heroTrack.innerHTML = slides
-        .map((slide) => {
-          const heroImage = slide.image_url || "";
+        .map((slide, index) => {
+          const desktopImage = slide.image_url || "";
+          const mobileImage = slide.mobile_image_url || desktopImage;
+          const overlaySvg = slide.overlay_svg_url || slide.svg_url || "";
+          const desktopX = Number.isFinite(Number(slide.svg_desktop_x)) ? Number(slide.svg_desktop_x) : 74;
+          const desktopY = Number.isFinite(Number(slide.svg_desktop_y)) ? Number(slide.svg_desktop_y) : 50;
+          const mobileX = Number.isFinite(Number(slide.svg_mobile_x)) ? Number(slide.svg_mobile_x) : 50;
+          const mobileY = Number.isFinite(Number(slide.svg_mobile_y)) ? Number(slide.svg_mobile_y) : 26;
+          const safeTitle = escapeHtml(slide.title || "");
+          const safeSubtitle = escapeHtml(slide.subtitle || "");
+          const safeEyebrow = escapeHtml(slide.eyebrow || "Collection");
+          const primaryLabel = escapeHtml(slide.primary_cta_label || "Shop Now");
+          const secondaryLabel = escapeHtml(slide.secondary_cta_label || "Explore");
+          const primaryLink = slide.primary_cta_link || "shop.html";
+          const secondaryLink = slide.secondary_cta_link || "categories.html";
           return `
-            <article class="hero-slide">
-              <div class="hero-copy">
-                <span class="eyebrow">${slide.eyebrow || "Collection"}</span>
-                <h2>${slide.title || ""}</h2>
-                <p>${slide.subtitle || ""}</p>
-                <div class="hero-highlights">
-                  ${getHeroHighlights(slide).map((item) => `<span>${item}</span>`).join("")}
-                </div>
-                <div class="btn-row">
-                  <a class="btn btn-primary" href="${slide.primary_cta_link || "shop.html"}">${slide.primary_cta_label || "Shop Now"}</a>
-                  <a class="btn btn-secondary" href="${slide.secondary_cta_link || "categories.html"}">${slide.secondary_cta_label || "Explore"}</a>
-                </div>
-                <div class="hero-feature-card">
-                  <strong>Why customers like this</strong>
-                  <p>Clean premium styling, strong wrist presence, and a polished look that works for daily wear and gifting.</p>
-                </div>
+            <article class="hero-slide" data-hero-slide-index="${index}">
+              <div class="hero-slide-bg">
+                <picture class="hero-slide-picture">
+                  <source media="(max-width: 880px)" srcset="${mobileImage}" />
+                  <img src="${desktopImage}" alt="${safeTitle || "Hero"}" loading="${index === 0 ? "eager" : "lazy"}" />
+                </picture>
+                <div class="hero-slide-image-mask"></div>
               </div>
-              <div class="hero-media">
-                <img src="${heroImage}" alt="${slide.title || "Hero"}" />
+              <div class="hero-slide-overlay-art${overlaySvg ? " has-art" : ""}" style="--hero-art-x:${desktopX}%; --hero-art-y:${desktopY}%; --hero-art-mobile-x:${mobileX}%; --hero-art-mobile-y:${mobileY}%;">
+                ${overlaySvg ? `<img src="${overlaySvg}" alt="" aria-hidden="true" />` : ""}
+              </div>
+              <div class="hero-slide-panel">
+                <div class="hero-copy">
+                  <span class="eyebrow">${safeEyebrow}</span>
+                  <h2>${safeTitle}</h2>
+                  <p>${safeSubtitle}</p>
+                  <div class="hero-highlights">
+                    ${getHeroHighlights(slide).map((item) => `<span>${escapeHtml(item)}</span>`).join("")}
+                  </div>
+                  <div class="btn-row">
+                    <a class="btn btn-primary" href="${primaryLink}">${primaryLabel}</a>
+                    <a class="btn btn-secondary" href="${secondaryLink}">${secondaryLabel}</a>
+                  </div>
+                </div>
               </div>
             </article>
           `;
         })
         .join("");
+      document.dispatchEvent(new CustomEvent("gt:hero-slides-ready", { detail: { count: slides.length } }));
       clearEmptyNote(heroTrack, "slides");
     } else {
       setEmptyNote(heroTrack, "slides");
@@ -757,6 +800,40 @@ window.GT_DATA_READY = (async () => {
     }
   }
 
+  const blogPage = document.querySelector("[data-blog-page]");
+  if (blogPage && supabase2) {
+    const params = new URLSearchParams(window.location.search);
+    const blogSlug = (params.get("slug") || "").trim();
+    if (blogSlug) {
+      const { data: blogBySlug } = await supabase2
+        .from("blogs")
+        .select("*")
+        .eq("slug", blogSlug)
+        .neq("is_active", false)
+        .maybeSingle();
+
+      const blogData = blogBySlug || null;
+      if (blogData) {
+        window.GT_BLOG_DETAIL = blogData;
+        const name = blogData.title || "Blog";
+        const desc = blogData.summary || "Glamtreasure style and accessory blog.";
+        const image = blogData.image_url || "https://glamtreasure.shop/assets/images/logo.svg";
+        const canonicalUrl = window.location.href.split("#")[0];
+        document.title = `${name} | Glamtreasure Blog`;
+        setMetaTag('meta[name="description"]', "content", desc);
+        setMetaTag('meta[property="og:title"]', "content", `${name} | Glamtreasure Blog`);
+        setMetaTag('meta[property="og:description"]', "content", desc);
+        setMetaTag('meta[property="og:image"]', "content", image);
+        setMetaTag('meta[property="og:url"]', "content", canonicalUrl);
+        setCanonical(canonicalUrl);
+      } else {
+        window.GT_BLOG_DETAIL = null;
+      }
+    } else {
+      window.GT_BLOG_DETAIL = null;
+    }
+  }
+
   window.dispatchEvent(new CustomEvent("gt:data-ready"));
 })();
 
@@ -767,4 +844,7 @@ function finishLoading() {
 }
 
 window.addEventListener("load", finishLoading);
+
+
+
 
