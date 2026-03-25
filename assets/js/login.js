@@ -3,6 +3,7 @@
   const loginForm = document.querySelector("[data-login-form]");
   const googleBtn = document.querySelector("[data-google-login]");
   const helperEl = document.querySelector("[data-login-helper]");
+  const emailInput = loginForm?.querySelector("[name=\"email\"]");
 
   const setStatus = (text, isError) => {
     if (!statusEl) return;
@@ -47,6 +48,13 @@
   };
 
   const boot = async () => {
+    const remembered = window.GTStore?.readLoginCookie?.();
+    if (remembered?.email && emailInput && !emailInput.value) {
+      emailInput.value = remembered.email;
+    }
+    if (remembered?.token) {
+      console.log("Welcome back! Your token is: " + remembered.token);
+    }
     if (!window.GTStore?.getSession) return;
     const session = await window.GTStore.getSession();
     if (session) {

@@ -795,15 +795,27 @@ onReady(() => {
   const gallery = document.querySelector("[data-product-gallery]");
   if (gallery) {
     const mainImage = gallery.querySelector("#main-product-image");
-    const thumbs = gallery.querySelectorAll(".thumb-btn");
+    const thumbs = Array.from(gallery.querySelectorAll(".thumb-btn"));
     thumbs.forEach((thumb) => {
       thumb.addEventListener("click", () => {
-        const image = thumb.getAttribute("data-image");
-        const alt = thumb.getAttribute("data-alt") || "Product image";
-        if (mainImage && image) {
-          mainImage.src = image;
-          mainImage.alt = alt;
+        if (!mainImage) return;
+        const thumbImage = thumb.getAttribute("data-image");
+        if (!thumbImage || thumbImage === mainImage.getAttribute("src")) return;
+
+        const thumbAlt = thumb.getAttribute("data-alt") || "Product image";
+        const thumbImgEl = thumb.querySelector("img");
+        const mainSrc = mainImage.getAttribute("src") || "";
+        const mainAlt = mainImage.getAttribute("alt") || "Product image";
+
+        mainImage.src = thumbImage;
+        mainImage.alt = thumbAlt;
+        thumb.setAttribute("data-image", mainSrc);
+        thumb.setAttribute("data-alt", mainAlt);
+        if (thumbImgEl) {
+          thumbImgEl.src = mainSrc;
+          thumbImgEl.alt = mainAlt;
         }
+
         thumbs.forEach((btn) => btn.classList.remove("is-active"));
         thumb.classList.add("is-active");
       });
@@ -864,6 +876,13 @@ onReady(() => {
           headers: { Accept: "application/json" }
         });
         if (response.ok) {
+          if (form.hasAttribute("data-contact-count") && window.GTStore?.client) {
+            try {
+              await window.GTStore.client.from("contact_submissions").insert({});
+            } catch (error) {
+              console.warn("Contact submission count insert failed.", error);
+            }
+          }
           if (status) {
             status.classList.add("is-success");
             status.textContent = "Form saved. You will get a reply within 48 hours.";
@@ -1415,6 +1434,7 @@ onReady(() => {
 
 
   const productImages = Array.isArray(watch.images) ? watch.images.filter(Boolean) : [];
+  const galleryImages = productImages.slice(1);
 
   if (mainImage && productImages.length > 0) {
     mainImage.src = productImages[0];
@@ -1422,17 +1442,18 @@ onReady(() => {
   }
 
   thumbs.forEach((thumb, i) => {
-    const img = productImages[i];
+    const img = galleryImages[i];
     if (!img) {
       thumb.remove();
       return;
     }
+    thumb.classList.toggle("is-active", i === 0);
     thumb.setAttribute("data-image", img);
-    thumb.setAttribute("data-alt", `${watch.name} view ${i + 1}`);
+    thumb.setAttribute("data-alt", `${watch.name} gallery view ${i + 2}`);
     const thumbImg = thumb.querySelector("img");
     if (thumbImg) {
       thumbImg.src = img;
-      thumbImg.alt = `${watch.name} thumbnail ${i + 1}`;
+      thumbImg.alt = `${watch.name} thumbnail ${i + 2}`;
     }
   });
 

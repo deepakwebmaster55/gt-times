@@ -1,6 +1,44 @@
 (() => {
   const config = window.GT_CONFIG || {};
   const supabaseConfig = config.supabase3 || {};
+  const cookieLibrary = () => window.Cookies || null;
+  const isSecureContext = () => window.location.protocol === "https:";
+  const getCookieOptions = () => ({
+    expires: 14,
+    sameSite: "Lax",
+    secure: isSecureContext()
+  });
+  const readLoginCookie = () => {
+    const cookies = cookieLibrary();
+    if (!cookies) return null;
+    const token = cookies.get("login_token");
+    const email = cookies.get("login_email");
+    if (!token && !email) return null;
+    return { token: token || "", email: email || "" };
+  };
+  const writeLoginCookie = (session) => {
+    const cookies = cookieLibrary();
+    if (!cookies) return;
+    const options = getCookieOptions();
+    const token = session?.access_token || "";
+    const email = session?.user?.email || "";
+    if (token) {
+      cookies.set("login_token", token, options);
+    } else {
+      cookies.remove("login_token");
+    }
+    if (email) {
+      cookies.set("login_email", email, options);
+    } else {
+      cookies.remove("login_email");
+    }
+  };
+  const clearLoginCookie = () => {
+    const cookies = cookieLibrary();
+    if (!cookies) return;
+    cookies.remove("login_token");
+    cookies.remove("login_email");
+  };
   const createMemoryStorage = () => {
     const memory = {};
     return {
@@ -340,14 +378,25 @@
 
     client.auth.getSession()
       .then(({ data }) => {
+        if (data?.session) {
+          writeLoginCookie(data.session);
+        } else {
+          clearLoginCookie();
+        }
         resolveAuthReady(data?.session || null);
         return loadCart();
       })
       .catch(() => {
+        clearLoginCookie();
         resolveAuthReady(null);
         return loadCart();
       });
     client.auth.onAuthStateChange(async (event, session) => {
+      if (session) {
+        writeLoginCookie(session);
+      } else if (event === "SIGNED_OUT") {
+        clearLoginCookie();
+      }
       resolveAuthReady(session || null);
       if (event === "SIGNED_IN" && session) {
         await mergeLocalToDb(session);
@@ -360,6 +409,7 @@
     client,
     authReady,
     getSession,
+    readLoginCookie,
     loadCart,
     addToCart,
     updateCartItem,
