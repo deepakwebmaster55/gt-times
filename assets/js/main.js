@@ -347,20 +347,19 @@ onReady(() => {
   };
 
   const setupWhatsAppBubble = () => {
-    const path = (window.location.pathname || "").toLowerCase();
-    const excluded =
-      path.includes("blog") ||
-      path.includes("policies") ||
-      path.includes("faq");
-    const wa = document.querySelector(".wa-float");
-    if (!wa) return;
-    if (excluded) {
-      wa.remove();
-      return;
+    const whatsappHref = "https://wa.me/917495098330";
+    let wa = document.querySelector(".wa-float");
+    if (!wa) {
+      wa = document.createElement("a");
+      wa.className = "wa-float";
+      document.body.appendChild(wa);
     }
+    wa.setAttribute("href", whatsappHref);
+    wa.setAttribute("target", "_blank");
+    wa.setAttribute("rel", "noopener");
     wa.classList.add("wa-icon");
-    wa.setAttribute("aria-label", "WhatsApp");
-    wa.setAttribute("title", "WhatsApp");
+    wa.setAttribute("aria-label", "Chat with Glamtreasure on WhatsApp");
+    wa.setAttribute("title", "Chat with Glamtreasure on WhatsApp");
     wa.textContent = "";
   };
 

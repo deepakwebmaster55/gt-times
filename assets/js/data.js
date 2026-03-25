@@ -388,6 +388,66 @@ window.GT_DATA_READY = (async () => {
       .replace(/\"/g, "&quot;")
       .replace(/'/g, "&#39;");
 
+  const normalizeBlogImageValue = (rawImageValue) => {
+    let value = "";
+    if (rawImageValue && typeof rawImageValue === "object") {
+      value = String(rawImageValue.publicUrl || rawImageValue.public_url || rawImageValue.url || "");
+    } else {
+      value = String(rawImageValue || "");
+    }
+
+    value = value.trim();
+    if (!value) return "";
+
+    if ((value.startsWith("{") && value.endsWith("}")) || (value.startsWith("[") && value.endsWith("]"))) {
+      try {
+        const parsed = JSON.parse(value);
+        if (typeof parsed === "string") value = parsed;
+        if (parsed && typeof parsed === "object") {
+          value = String(parsed.publicUrl || parsed.public_url || parsed.url || "");
+        }
+      } catch (_error) {}
+    }
+
+    return value.trim().replace(/^['"]|['"]$/g, "");
+  };
+
+  const getBlogImageCandidates = (rawImageValue) => {
+    const value = normalizeBlogImageValue(rawImageValue);
+    const candidates = [];
+    const supabase1Base = (supabase1Config.url || "").replace(/\/+$/, "");
+    const supabase2Base = (supabase2Config.url || "").replace(/\/+$/, "");
+    if (!value) return candidates;
+    if (/^https?:\/\//i.test(value) || value.startsWith("data:")) {
+      candidates.push(value);
+      if (
+        supabase1Base &&
+        supabase2Base &&
+        value.startsWith(`${supabase2Base}/storage/v1/object/public/product-images/`)
+      ) {
+        candidates.push(value.replace(supabase2Base, supabase1Base));
+      }
+      return candidates;
+    }
+
+    const base = supabase2Base;
+    const clean = value.replace(/^\/+/, "");
+
+    if (base) {
+      if (value.startsWith("/storage/v1/object/public/")) candidates.push(`${base}${value}`);
+      if (clean.startsWith("storage/v1/object/public/")) candidates.push(`${base}/${clean}`);
+      if (clean.startsWith("public/")) candidates.push(`${base}/storage/v1/object/${clean}`);
+      if (clean.startsWith("product-images/")) candidates.push(`${base}/storage/v1/object/public/${clean}`);
+      if (clean.startsWith("blogs/")) candidates.push(`${base}/storage/v1/object/public/product-images/${clean}`);
+      candidates.push(`${base}/storage/v1/object/public/product-images/${clean}`);
+      candidates.push(`${base}/storage/v1/object/public/${clean}`);
+      candidates.push(`${base}/${clean}`);
+    }
+
+    candidates.push(value);
+    return Array.from(new Set(candidates.filter(Boolean)));
+  };
+
   const getHeroHighlights = (slide) => {
     const title = String(slide?.title || "").toLowerCase();
     if (title.includes("fossil")) {
@@ -493,26 +553,10 @@ window.GT_DATA_READY = (async () => {
     const slug = String(blog.slug || "").trim();
     const url = slug ? `blog-details.html?slug=${encodeURIComponent(slug)}` : "blog.html";
     const date = blog.published_at ? new Date(blog.published_at).toLocaleDateString() : "";
-    const rawImage = String(blog.image_url || "").trim().replace(/^['"]|['"]$/g, "");
-    const normalizedImage = (() => {
-      if (!rawImage) return "";
-      if (/^https?:\/\//i.test(rawImage) || rawImage.startsWith("data:")) return rawImage;
-      if (!supabase2Config.url) return "";
-
-      const base = supabase2Config.url.replace(/\/+$/, "");
-      if (rawImage.startsWith("/storage/v1/object/public/")) return `${base}${rawImage}`;
-      if (rawImage.startsWith("storage/v1/object/public/")) return `${base}/${rawImage}`;
-      if (rawImage.startsWith("product-images/")) return `${base}/storage/v1/object/public/${rawImage}`;
-      if (rawImage.startsWith("/product-images/")) return `${base}/storage/v1/object/public${rawImage}`;
-      if (rawImage.startsWith("blogs/")) return `${base}/storage/v1/object/public/product-images/${rawImage}`;
-      if (rawImage.startsWith("/blogs/")) return `${base}/storage/v1/object/public/product-images${rawImage}`;
-      if (rawImage.startsWith("/")) return `${base}${rawImage}`;
-      return `${base}/storage/v1/object/public/product-images/${rawImage}`;
-    })();
-
-    const imageTag = normalizedImage
-      ? `<img src="${normalizedImage}" alt="${blog.title || "Blog"}" onerror="this.onerror=null;this.style.display='none'" />`
-      : `<img src="assets/images/logo.svg" alt="${blog.title || "Blog"}" />`;
+    const candidates = getBlogImageCandidates(blog.image_url);
+    const firstImage = candidates[0] || "assets/images/logo.svg";
+    const encodedCandidates = escapeHtml(JSON.stringify(candidates));
+    const imageTag = `<img src="${firstImage}" alt="${blog.title || "Blog"}" data-blog-img data-blog-candidates="${encodedCandidates}" onerror="this.onerror=null;this.src='assets/images/logo.svg'" />`;
     return `
       <article class="blog-card is-visible">
         ${imageTag}
@@ -522,6 +566,30 @@ window.GT_DATA_READY = (async () => {
         <a class="btn btn-secondary" href="${url}">Read More</a>
       </article>
     `;
+  };
+
+  const hydrateBlogImages = (root) => {
+    if (!root) return;
+    root.querySelectorAll("img[data-blog-img]").forEach((img) => {
+      const raw = img.getAttribute("data-blog-candidates") || "[]";
+      let candidates = [];
+      try {
+        candidates = JSON.parse(raw);
+      } catch (_error) {
+        candidates = [];
+      }
+      if (!Array.isArray(candidates) || !candidates.length) return;
+      let index = 0;
+      img.onerror = () => {
+        index += 1;
+        if (index < candidates.length) {
+          img.src = candidates[index];
+          return;
+        }
+        img.onerror = null;
+        img.src = "assets/images/logo.svg";
+      };
+    });
   };
 
   const mapReview = (review) => {
@@ -723,6 +791,7 @@ window.GT_DATA_READY = (async () => {
     window.GT_BLOGS = blogs;
     if (blogs.length) {
       blogGrid.innerHTML = blogs.map(mapBlogCard).join("");
+      hydrateBlogImages(blogGrid);
     }
   }
 
