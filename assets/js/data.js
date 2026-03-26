@@ -201,6 +201,33 @@ window.GT_DATA_READY = (async () => {
   window.GT_SUPABASE1 = supabase1;
   window.GT_SUPABASE2 = supabase2;
 
+  let catalogSnapshotPromise = null;
+  const fetchCatalogSnapshot = async () => {
+    if (catalogSnapshotPromise) return catalogSnapshotPromise;
+
+    const functionUrl = `${String(supabase1Config.url || "").replace(/\/+$/, "")}/functions/v1/product-search`;
+    catalogSnapshotPromise = fetch(functionUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ action: "catalog_snapshot" })
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`Catalog snapshot failed (${response.status})`);
+        }
+        const payload = await response.json();
+        return payload && typeof payload === "object" ? payload : {};
+      })
+      .catch((error) => {
+        console.warn("Catalog snapshot fallback failed.", error);
+        return {};
+      });
+
+    return catalogSnapshotPromise;
+  };
+
   
 
   const productPageSkeleton = document.querySelector("[data-product-page]");
@@ -238,11 +265,11 @@ window.GT_DATA_READY = (async () => {
       .select("*")
       .neq("is_active", false);
 
-    if (!primary.error) {
+    if (!primary.error && (primary.data || []).length) {
       return primary.data || [];
     }
 
-    console.warn("Primary products query failed, retrying without active filter.", primary.error);
+    console.warn("Primary products query unavailable or empty, retrying without active filter.", primary.error);
 
     const fallback = await supabase1
       .from("products")
@@ -250,17 +277,26 @@ window.GT_DATA_READY = (async () => {
 
     if (fallback.error) {
       console.error("Products fallback query failed.", fallback.error);
-      return [];
+      const snapshot = await fetchCatalogSnapshot();
+      return Array.isArray(snapshot.products) ? snapshot.products : [];
     }
 
-    return (fallback.data || []).filter((product) => product?.is_active !== false);
+    const localData = (fallback.data || []).filter((product) => product?.is_active !== false);
+    if (localData.length) return localData;
+
+    const snapshot = await fetchCatalogSnapshot();
+    return Array.isArray(snapshot.products) ? snapshot.products : [];
   };
 
   const fetchCategories = async () => {
     const { data, error } = await supabase1.from("categories").select("*").neq("is_active", false);
-    if (error) {
+    if (error || !(data || []).length) {
       const fallback = await supabase1.from("categories").select("*");
-      return fallback.data || [];
+      if (!fallback.error && (fallback.data || []).length) {
+        return fallback.data || [];
+      }
+      const snapshot = await fetchCatalogSnapshot();
+      return Array.isArray(snapshot.categories) ? snapshot.categories : [];
     }
     return data || [];
   };
@@ -272,8 +308,27 @@ window.GT_DATA_READY = (async () => {
   };
 
   const fetchHeroSlides = async () => {
-    const { data } = await supabase1.from("home_sliders").select("*").neq("is_active", false).order("order_index", { ascending: true });
-    return data || [];
+    const { data, error } = await supabase1
+      .from("home_sliders")
+      .select("*")
+      .neq("is_active", false)
+      .order("order_index", { ascending: true });
+
+    if (!error && (data || []).length) {
+      return data || [];
+    }
+
+    const fallback = await supabase1
+      .from("home_sliders")
+      .select("*")
+      .order("order_index", { ascending: true });
+
+    if (!fallback.error && (fallback.data || []).length) {
+      return fallback.data || [];
+    }
+
+    const snapshot = await fetchCatalogSnapshot();
+    return Array.isArray(snapshot.slides) ? snapshot.slides : [];
   };
 
   const fetchReviews = async () => {

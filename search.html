@@ -4,11 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Search | Glamtreasure</title>
-  <meta name="description" content="Search Glamtreasure products, categories, blog posts, and key pages." />
+  <meta name="description" content="Search Glamtreasure products with fast autocomplete, smart price filters, and brand/category refinement." />
   <meta name="robots" content="noindex, follow" />
   <link rel="canonical" href="https://glamtreasure.shop/search.html" />
   <meta property="og:title" content="Search | Glamtreasure" />
-  <meta property="og:description" content="Search products, categories, blog posts, and key pages." />
+  <meta property="og:description" content="Search Glamtreasure products with live autocomplete, smart price phrases, and filterable results." />
   <meta property="og:url" content="https://glamtreasure.shop/search.html" />
   <meta property="og:image" content="https://glamtreasure.shop/assets/images/logo.svg" />
   <link rel="stylesheet" href="assets/css/styles.css" />
@@ -16,7 +16,7 @@
 <body class="page-bg" data-page-bg>
   <div class="top-strip">
     <div class="container">
-      <p>Search products, blog posts, categories, and support pages.</p>
+      <p>Search products with live suggestions and smart filters.</p>
       <div class="top-links">
         <a href="tel:+917495098330">+91 7495098330</a>
         <a href="mailto:glamtreasure03@gmail.com">glamtreasure03@gmail.com</a>
@@ -51,7 +51,7 @@
       <div class="container page-hero-card reveal">
         <p class="breadcrumb">Home / Search</p>
         <h1 class="section-title" style="margin-bottom:0.6rem;">Search Products</h1>
-        <p class="section-subtitle">Use the dedicated search page to find products fast, get live suggestions while typing, and view matching products below on the same page.</p>
+        <p class="section-subtitle">Use the dedicated search page to find products fast, get live suggestions while typing, and refine results instantly by price, category, brand, and gender.</p>
       </div>
     </section>
 
@@ -61,7 +61,7 @@
           <div class="search-page-intro">
             <span class="search-page-eyebrow">Product Finder</span>
             <h2>Find the right product before you shop</h2>
-            <p>Search by product name, category, style, badge, or price-related words. Suggestions appear as you type like large ecommerce stores.</p>
+            <p>Search by product name, category, brand, gender, or price phrases like "watch under 500" or "women perfume above 1200".</p>
           </div>
           <form class="shop-search-form search-page-form" data-search-form autocomplete="off">
             <div class="search-field-wrap">
@@ -70,13 +70,31 @@
             </div>
             <button type="submit">Search</button>
           </form>
+          <p class="search-correction-note" data-search-correction hidden></p>
+          <p class="search-helper-text" data-search-helper-text>Examples: watch under 500, men watch, women perfume above 1000</p>
           <div class="search-popular" data-search-popular></div>
         </div>
         <div class="search-results-panel">
           <div class="search-results-head">
             <p class="search-summary" data-search-summary></p>
+            <div class="search-toolbar">
+              <label class="search-sort-label">
+                <span>Sort</span>
+                <select data-search-sort>
+                  <option value="relevance">Relevance</option>
+                  <option value="price:asc">Price: Low to High</option>
+                  <option value="price:desc">Price: High to Low</option>
+                  <option value="title:asc">Title: A to Z</option>
+                </select>
+              </label>
+            </div>
           </div>
-          <div class="product-grid search-product-grid" data-search-results></div>
+          <div class="search-layout">
+            <section class="search-results-body">
+              <div class="search-applied-filters" data-search-applied></div>
+              <div class="product-grid search-product-grid" data-search-results></div>
+            </section>
+          </div>
         </div>
       </div>
     </section>

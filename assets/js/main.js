@@ -729,6 +729,14 @@ onReady(() => {
     }
   };
 
+  const navigateToPath = (path) => {
+    try {
+      window.location.href = new URL(path, window.location.href).href;
+    } catch (error) {
+      window.location.href = path;
+    }
+  };
+
   document.addEventListener("click", async (event) => {
     const target = event.target instanceof Element ? event.target : null;
     const actionButton = target ? target.closest("[data-shop-add-to-cart], [data-shop-buy-now]") : null;
@@ -756,13 +764,13 @@ onReady(() => {
         storeReturnPath(isBuyNow ? "checkout.html" : "cart.html");
         showLoginNotice(isBuyNow ? "Please login first to buy this item." : "Please login first to add items to cart.");
         setTimeout(() => {
-          window.location.href = "login.html";
+          navigateToPath("login.html");
         }, 500);
         return;
       }
 
       if (isBuyNow) {
-        window.location.href = "checkout.html";
+        navigateToPath("checkout.html");
         return;
       }
 
@@ -787,7 +795,7 @@ onReady(() => {
     storeReturnPath("cart.html");
     showLoginNotice("Please login first to view your cart.");
     setTimeout(() => {
-      window.location.href = "login.html";
+      navigateToPath("login.html");
     }, 500);
   });
 });
